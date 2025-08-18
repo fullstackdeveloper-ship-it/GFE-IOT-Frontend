@@ -4,6 +4,7 @@ import Header from './Header';
 import { useAppSelector } from '../../hooks/redux';
 import Overview from '../../pages/Overview';
 import Network from '../../pages/Network';
+import Devices from '../../pages/Devices';
 import Logs from '../../pages/Logs';
 import Alerts from '../../pages/Alerts';
 import Settings from '../../pages/Settings';
@@ -18,6 +19,8 @@ const MainLayout = () => {
         return <Overview />;
       case 'network':
         return <Network />;
+      case 'devices':
+        return <Devices />;
       case 'logs':
         return <Logs />;
       case 'alerts':

@@ -4,6 +4,7 @@ import { setActiveTab } from '../../features/navigationSlice';
 import {
   Home,
   Network,
+  Server,
   FileText,
   Bell,
   Settings,
@@ -19,6 +20,7 @@ const Sidebar = () => {
     const icons = {
       Home,
       Network,
+      Server,
       FileText,
       Bell,
       Settings,

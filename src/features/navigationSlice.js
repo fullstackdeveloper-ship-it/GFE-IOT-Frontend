@@ -5,6 +5,7 @@ const initialState = {
   tabs: [
     { id: 'overview', label: 'Overview', icon: 'Home' },
     { id: 'network', label: 'Network', icon: 'Network' },
+    { id: 'devices', label: 'Devices', icon: 'Server' },
     { id: 'logs', label: 'Logs', icon: 'FileText' },
     { id: 'alerts', label: 'Alerts', icon: 'Bell' },
     { id: 'settings', label: 'Settings', icon: 'Settings' },
