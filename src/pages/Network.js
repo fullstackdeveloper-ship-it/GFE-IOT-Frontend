@@ -142,12 +142,12 @@ const Network = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   // react-toastify handles notifications
-  const [devicesByInterface, setDevicesByInterface] = useState({ eth1: [], eth2: [], serial_1: [], serial_2: [] });
+  const [devicesByInterface, setDevicesByInterface] = useState({ eth1: [], wifi: [], serial_1: [], serial_2: [] });
   const [references, setReferences] = useState([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [deviceModals, setDeviceModals] = useState({
     eth1: { open: false, mode: 'add', data: null, originalName: null },
-    eth2: { open: false, mode: 'add', data: null, originalName: null },
+    wifi: { open: false, mode: 'add', data: null, originalName: null },
     serial_1: { open: false, mode: 'add', data: null, originalName: null },
     serial_2: { open: false, mode: 'add', data: null, originalName: null },
   });
@@ -267,7 +267,7 @@ const Network = () => {
       const byIface = data.devices || {};
       setDevicesByInterface({
         eth1: Array.isArray(byIface.eth1) ? byIface.eth1 : [],
-        eth2: Array.isArray(byIface.eth2) ? byIface.eth2 : [],
+        wifi: Array.isArray(byIface.wifi) ? byIface.wifi : [],
         serial_1: Array.isArray(byIface.serial_1) ? byIface.serial_1 : [],
         serial_2: Array.isArray(byIface.serial_2) ? byIface.serial_2 : [],
       });
@@ -294,18 +294,21 @@ const Network = () => {
 
   // Device modal helpers
   const openAddDeviceModal = (iface) => {
+    // Set default protocol based on interface
+    const defaultProtocol = (iface === 'eth1' || iface === 'wifi') ? 'modbus_tcp' : 'modbus_rtu';
+    
     const defaults = {
       device_name: '',
       reference: '',
-      protocol: '',
+      protocol: defaultProtocol,
       interface: iface,
       device_id: '',
-      response_timeout: '',
+      response_timeout: 0.5,
       device_ip: '',
-      tcp_port: '',
+      tcp_port: 502,
       keep_tcp_seasion_open: false,
       cocurrent_access: false,
-      byte_timeout: ''
+      byte_timeout: 0.5
     };
     setDeviceModals((prev) => ({ ...prev, [iface]: { open: true, mode: 'add', data: defaults, originalName: null } }));
   };
@@ -340,12 +343,12 @@ const Network = () => {
       const toNum = (v) => (v === '' || v === null ? NaN : Number(v));
       const deviceIdNum = toNum(payload.device_id);
       const respTimeoutNum = toNum(payload.response_timeout);
-      if (Number.isNaN(deviceIdNum)) {
-        notifyError('Device ID is required');
+      if (Number.isNaN(deviceIdNum) || deviceIdNum < 0 || deviceIdNum > 255) {
+        notifyError('Device ID must be between 0-255');
         return;
       }
-      if (Number.isNaN(respTimeoutNum)) {
-        notifyError('Response timeout is required');
+      if (Number.isNaN(respTimeoutNum) || respTimeoutNum <= 0) {
+        notifyError('Response timeout must be greater than 0');
         return;
       }
       if (payload.protocol === 'modbus_tcp') {
@@ -362,8 +365,8 @@ const Network = () => {
       }
       if (payload.protocol === 'modbus_rtu') {
         const byteTimeoutNum = toNum(payload.byte_timeout);
-        if (Number.isNaN(byteTimeoutNum) || byteTimeoutNum < 0) {
-          notifyError('Byte timeout is required for Modbus RTU');
+        if (Number.isNaN(byteTimeoutNum) || byteTimeoutNum <= 0) {
+          notifyError('Byte timeout must be greater than 0 for Modbus RTU');
           return;
         }
         payload.byte_timeout = byteTimeoutNum;
@@ -637,26 +640,28 @@ const Network = () => {
       {/* 4-Column Device Management */}
       <div className="mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 h-[75vh]">
-          {['eth1','eth2','serial_1','serial_2'].map((ifaceKey) => (
+          {['eth1','wifi','serial_1','serial_2'].map((ifaceKey) => (
             <div key={ifaceKey} className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col h-full">
               {/* Header with interface icon and name */}
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white rounded-t-xl">
                 <div className="flex items-center gap-3">
                   {ifaceKey.startsWith('eth') ? (
                     <Router className="text-blue-600" size={20} />
+                  ) : ifaceKey === 'wifi' ? (
+                    <Wifi className="text-purple-600" size={20} />
                   ) : (
                     <Cable className="text-green-600" size={20} />
                   )}
                   <div>
                     <div className="font-semibold text-gray-800 text-lg">{ifaceKey}</div>
                     <div className="text-xs text-gray-500">
-                      {ifaceKey.startsWith('eth') ? 'Ethernet Interface' : 'Serial Port'}
+                      {ifaceKey.startsWith('eth') ? 'Ethernet Interface' : ifaceKey === 'wifi' ? 'WiFi Interface' : 'Serial Port'}
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={() => {
-                    if (ifaceKey === 'eth1' || ifaceKey === 'eth2') {
+                    if (ifaceKey === 'eth1' || ifaceKey === 'wifi') {
                       const found = networkInterfaces.find((i) => i.name === ifaceKey) || { name: ifaceKey };
                       openNetworkModal(found);
                     } else {
@@ -803,7 +808,7 @@ const Network = () => {
       />
 
       {/* Add/Edit Device Modals per interface */}
-      {(['eth1','eth2','serial_1','serial_2']).map((ifaceKey) => {
+      {(['eth1','wifi','serial_1','serial_2']).map((ifaceKey) => {
         const modal = deviceModals[ifaceKey];
         if (!modal.open) return null;
         const d = modal.data || {};
@@ -855,7 +860,8 @@ const Network = () => {
                     <select 
                       value={d.protocol || ''} 
                       onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, protocol: e.target.value } } }))} 
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                      disabled
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm bg-gray-100 text-gray-600 cursor-not-allowed"
                     >
                       <option value="" disabled>Select protocol…</option>
                       <option value="modbus_tcp">modbus_tcp</option>
@@ -864,46 +870,102 @@ const Network = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Interface</label>
-                  <input type="text" value={ifaceKey} readOnly className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100 text-gray-600" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Interface</label>
+                  <input 
+                    type="text" 
+                    value={ifaceKey} 
+                    readOnly 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm bg-gray-100 text-gray-600 cursor-not-allowed" 
+                  />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Device ID</label>
-                    <input type="number" value={d.device_id ?? ''} onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, device_id: Number(e.target.value) } } }))} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Device ID (0-255)</label>
+                    <input 
+                      type="number" 
+                      min="0" 
+                      max="255" 
+                      value={d.device_id ?? ''} 
+                      onChange={(e) => {
+                        const value = Math.max(0, Math.min(255, Number(e.target.value)));
+                        setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, device_id: value } } }))
+                      }} 
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" 
+                      placeholder="0-255"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Response Timeout (ms)</label>
-                    <input type="number" value={d.response_timeout ?? ''} onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, response_timeout: Number(e.target.value) } } }))} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Response Timeout (s)</label>
+                    <input 
+                      type="number" 
+                      step="0.1" 
+                      min="0.1" 
+                      value={d.response_timeout ?? ''} 
+                      onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, response_timeout: Number(e.target.value) } } }))} 
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" 
+                      placeholder="0.5"
+                    />
                   </div>
                 </div>
                 {d.protocol === 'modbus_tcp' ? (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Device IP</label>
-                        <input type="text" value={d.device_ip || ''} onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, device_ip: e.target.value } } }))} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" />
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Device IP</label>
+                        <input 
+                          type="text" 
+                          value={d.device_ip || ''} 
+                          onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, device_ip: e.target.value } } }))} 
+                          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" 
+                          placeholder="192.168.1.100"
+                        />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">TCP Port</label>
-                        <input type="number" value={d.tcp_port ?? ''} onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, tcp_port: Number(e.target.value) } } }))} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" />
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">TCP Port</label>
+                        <input 
+                          type="number" 
+                          min="1" 
+                          max="65535" 
+                          value={d.tcp_port ?? ''} 
+                          onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, tcp_port: Number(e.target.value) } } }))} 
+                          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" 
+                          placeholder="502"
+                        />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" checked={!!d.keep_tcp_seasion_open} onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, keep_tcp_seasion_open: e.target.checked } } }))} />
-                        Keep TCP Session Open
+                    <div className="grid grid-cols-2 gap-4">
+                      <label className="inline-flex items-center gap-3 text-sm text-gray-700 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={!!d.keep_tcp_seasion_open} 
+                          onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, keep_tcp_seasion_open: e.target.checked } } }))} 
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="font-medium">Keep TCP Session Open</span>
                       </label>
-                      <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" checked={!!d.cocurrent_access} onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, cocurrent_access: e.target.checked } } }))} />
-                        Concurrent Access
+                      <label className="inline-flex items-center gap-3 text-sm text-gray-700 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={!!d.cocurrent_access} 
+                          onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, cocurrent_access: e.target.checked } } }))} 
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="font-medium">Concurrent Access</span>
                       </label>
                     </div>
                   </>
                 ) : (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Byte Timeout (ms)</label>
-                    <input type="number" value={d.byte_timeout ?? ''} onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, byte_timeout: Number(e.target.value) } } }))} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Byte Timeout (s)</label>
+                    <input 
+                      type="number" 
+                      step="0.1" 
+                      min="0.1" 
+                      value={d.byte_timeout ?? ''} 
+                      onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, byte_timeout: Number(e.target.value) } } }))} 
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" 
+                      placeholder="0.5"
+                    />
                   </div>
                 )}
               </div>
