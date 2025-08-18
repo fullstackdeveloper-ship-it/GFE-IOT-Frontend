@@ -744,21 +744,6 @@ const Network = () => {
             </div>
           </div>
           
-          {/* Status Pills */}
-          <div className="flex items-center gap-3">
-            <div className="px-4 py-2 bg-gradient-to-r from-emerald-100 to-green-100 border border-emerald-200 rounded-full shadow-md">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-semibold text-emerald-700">System Online</span>
-              </div>
-            </div>
-            <div className="px-4 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 border border-blue-200 rounded-full shadow-md">
-              <div className="flex items-center gap-2">
-                <Globe2 size={14} className="text-blue-600" />
-                <span className="text-sm font-semibold text-blue-700">Monitoring Active</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -870,15 +855,7 @@ const Network = () => {
                 {renderConnectivityIndicators(ifaceKey)}
           </div>
               
-              {/* Add Device Button */}
-              <div className="px-6 py-4 border-b border-gray-100">
-                <button 
-                  onClick={() => openAddDeviceModal(ifaceKey)} 
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-                >
-                  <Plus size={16} /> Add Device
-                </button>
-              </div>
+          
               
               {/* Device Count */}
               <div className="px-6 py-3 text-sm text-gray-600 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50">
@@ -977,6 +954,14 @@ const Network = () => {
                     )}
           </div>
         )}
+         <div className="px-6 py-4 border-b border-gray-100">
+                <button 
+                  onClick={() => openAddDeviceModal(ifaceKey)} 
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                >
+                  <Plus size={16} /> Add Device
+                </button>
+              </div>
               </div>
             </div>
           ))}

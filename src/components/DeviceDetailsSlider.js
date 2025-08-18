@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Database, Save, Search } from 'lucide-react';
+import { X, Database, Save, Search, Edit3 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
@@ -9,6 +9,9 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   const [editableValues, setEditableValues] = useState({});
   const [parameterSearch, setParameterSearch] = useState('');
   const [filteredRegisters, setFilteredRegisters] = useState([]);
+  const [showValueModal, setShowValueModal] = useState(false);
+  const [selectedRegister, setSelectedRegister] = useState(null);
+  const [modalValue, setModalValue] = useState('');
 
   const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -70,6 +73,29 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
     toast.success('Value saved successfully');
   };
 
+  const openValueModal = (register) => {
+    setSelectedRegister(register);
+    setModalValue('');
+    setShowValueModal(true);
+  };
+
+  const closeValueModal = () => {
+    setShowValueModal(false);
+    setSelectedRegister(null);
+    setModalValue('');
+  };
+
+  const confirmValueChange = () => {
+    if (selectedRegister && modalValue.trim()) {
+      // TODO: Implement actual value setting when backend is ready
+      console.log('Setting value for register:', selectedRegister.id, 'Value:', modalValue);
+      toast.success(`Value set for ${selectedRegister.long_name}`);
+      closeValueModal();
+    } else {
+      toast.error('Please enter a valid value');
+    }
+  };
+
   const getDisplayUnit = (register) => {
     // Use the unit field from blueprint if available
     if (register.unit) {
@@ -80,41 +106,32 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
     return '—';
   };
 
-  const renderValueInput = (register) => {
-    const registerId = register.id;
-    const access = register.channel_access?.toUpperCase(); // Normalize to uppercase
-    const currentValue = editableValues[registerId] || '';
-    
-    // Check if it's writable (WO or RW)
+  const renderValueDisplay = (register) => {
+    // Always show a simple dash for value display
+    return (
+      <span className="text-sm font-mono text-gray-600 px-3 py-2 bg-gray-50 rounded border min-w-[100px] text-center inline-block">
+        —
+      </span>
+    );
+  };
+
+  const renderActionButton = (register) => {
+    console.log(register, 'register');
+    const access = register.channel_access?.toUpperCase();
     const isWritable = access === 'WO' || access === 'RW';
     
     if (isWritable) {
-      // Editable input for WO or RW
       return (
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={currentValue}
-            onChange={(e) => handleValueChange(registerId, e.target.value)}
-            placeholder="—"
-            className="text-sm font-mono px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[100px] text-center bg-white"
-          />
-          <button
-            onClick={() => handleSaveValue(registerId)}
-            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200 flex-shrink-0"
-            title="Save Value"
-          >
-            <Save className="w-4 h-4" />
-          </button>
-        </div>
+        <button
+          onClick={() => openValueModal(register)}
+          className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-110"
+          title={`Set value for ${register.long_name}`}
+        >
+          <Edit3 className="w-4 h-4" />
+        </button>
       );
     } else {
-      // Read Only - just display dash
-      return (
-        <span className="text-sm font-mono text-gray-600 px-3 py-2 bg-gray-50 rounded border min-w-[100px] text-center inline-block">
-          —
-        </span>
-      );
+      return null;
     }
   };
 
@@ -132,7 +149,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
       
       {/* Slider Panel */}
       <div 
-        className={`fixed top-0 right-0 h-full w-full max-w-5xl bg-white shadow-2xl transform transition-transform duration-500 ease-in-out z-50 ${
+        className={`fixed top-0 right-0 h-full w-[35vw] min-w-[400px] bg-white shadow-2xl transform transition-transform duration-500 ease-in-out z-50 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -228,11 +245,11 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                       <div className="overflow-x-auto">
                         <table className="min-w-full">
                           <thead className="bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
-                            <tr>
-                              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Parameter</th>
-                              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Unit</th>
-                              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Value</th>
-                            </tr>
+                                                          <tr>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Parameter</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Value</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Unit</th>
+                              </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
                             {filteredRegisters.map((register, index) => (
@@ -249,13 +266,17 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                                   </div>
                                 </td>
                                 <td className="px-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    {renderValueDisplay(register)}
+                                    {renderActionButton(register)}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
                                   <span className="text-sm text-gray-600 font-medium">
                                     {getDisplayUnit(register)}
                                   </span>
                                 </td>
-                                <td className="px-6 py-4">
-                                  {renderValueInput(register)}
-                                </td>
+                                    
                               </tr>
                             ))}
                           </tbody>
@@ -269,6 +290,73 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
           </div>
         </div>
       </div>
+
+      {/* Value Setting Modal */}
+      {showValueModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-100">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-600 rounded-lg">
+                  <Edit3 className="text-white" size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Set Parameter Value</h3>
+                  <p className="text-sm text-gray-600">{selectedRegister?.long_name}</p>
+                </div>
+              </div>
+              <button
+                onClick={closeValueModal}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    New Value
+                    {selectedRegister?.unit && (
+                      <span className="text-gray-500 ml-1">({selectedRegister.unit})</span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    value={modalValue}
+                    onChange={(e) => setModalValue(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                    placeholder="Enter value..."
+                    autoFocus
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        confirmValueChange();
+                      }
+                    }}
+                  />
+                </div>
+
+              </div>
+            </div>
+
+            <div className="flex gap-3 p-6 bg-gray-50 rounded-b-xl border-t border-gray-100">
+              <button
+                onClick={closeValueModal}
+                className="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmValueChange}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Custom animations */}
       <style jsx>{`

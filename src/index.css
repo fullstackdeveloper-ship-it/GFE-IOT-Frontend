@@ -4,11 +4,21 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Global font improvements */
+* {
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Custom font weight utilities for Montserrat */
+.font-montserrat {
+  font-family: 'Montserrat', sans-serif;
 }
 
 code {
