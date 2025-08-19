@@ -124,11 +124,11 @@ const Devices = () => {
 
   const getInterfaceIcon = (interfaceName) => {
     if (interfaceName.startsWith('eth')) {
-      return <Router className="w-4 h-4 text-blue-600" />;
+      return <Router className="w-4 h-4 text-[#0097b2]" />;
     } else if (interfaceName === 'wifi') {
-      return <Wifi className="w-4 h-4 text-purple-600" />;
+      return <Wifi className="w-4 h-4 text-[#198c1a]" />;
     } else if (interfaceName.startsWith('serial')) {
-      return <Cable className="w-4 h-4 text-green-600" />;
+      return <Cable className="w-4 h-4 text-[#0097b2]" />;
     }
     return <Server className="w-4 h-4 text-gray-600" />;
   };
@@ -136,11 +136,11 @@ const Devices = () => {
   const getInterfaceBadge = (interfaceName) => {
     const baseClasses = "inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium";
     if (interfaceName.startsWith('eth')) {
-      return `${baseClasses} bg-blue-50 text-blue-700 border border-blue-200`;
+      return `${baseClasses} bg-gradient-to-r from-[#0097b2]/20 to-[#0097b2]/10 text-[#0097b2] border border-[#0097b2]/30`;
     } else if (interfaceName === 'wifi') {
-      return `${baseClasses} bg-purple-50 text-purple-700 border border-purple-200`;
+      return `${baseClasses} bg-gradient-to-r from-[#198c1a]/20 to-[#198c1a]/10 text-[#198c1a] border border-[#198c1a]/30`;
     } else if (interfaceName.startsWith('serial')) {
-      return `${baseClasses} bg-green-50 text-green-700 border border-green-200`;
+      return `${baseClasses} bg-gradient-to-r from-[#0097b2]/15 to-[#198c1a]/15 text-[#0097b2] border border-[#0097b2]/30`;
     }
     return `${baseClasses} bg-gray-50 text-gray-700 border border-gray-200`;
   };
@@ -150,14 +150,14 @@ const Devices = () => {
     
     const formattedType = type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     const colors = {
-      'hybrid_inverter': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      'pcs': 'bg-blue-50 text-blue-700 border-blue-200',
-      'bms': 'bg-purple-50 text-purple-700 border-purple-200',
-      'genset_controller': 'bg-orange-50 text-orange-700 border-orange-200',
-      'solar_inverter': 'bg-yellow-50 text-yellow-700 border-yellow-200',
-      'power_meter': 'bg-indigo-50 text-indigo-700 border-indigo-200',
-      'sensor': 'bg-pink-50 text-pink-700 border-pink-200',
-      'io_module': 'bg-cyan-50 text-cyan-700 border-cyan-200',
+      'hybrid_inverter': 'bg-gradient-to-r from-[#198c1a]/20 to-[#0097b2]/20 text-[#198c1a] border-[#198c1a]/30',
+      'pcs': 'bg-gradient-to-r from-[#0097b2]/20 to-[#198c1a]/20 text-[#0097b2] border-[#0097b2]/30',
+      'bms': 'bg-gradient-to-r from-[#0097b2]/15 to-[#198c1a]/25 text-[#0097b2] border-[#0097b2]/30',
+      'genset_controller': 'bg-gradient-to-r from-[#198c1a]/25 to-[#0097b2]/15 text-[#198c1a] border-[#198c1a]/30',
+      'solar_inverter': 'bg-gradient-to-r from-[#198c1a]/20 to-[#0097b2]/20 text-[#198c1a] border-[#198c1a]/30',
+      'power_meter': 'bg-gradient-to-r from-[#0097b2]/20 to-[#198c1a]/20 text-[#0097b2] border-[#0097b2]/30',
+      'sensor': 'bg-gradient-to-r from-[#0097b2]/15 to-[#198c1a]/15 text-[#0097b2] border-[#0097b2]/30',
+      'io_module': 'bg-gradient-to-r from-[#198c1a]/15 to-[#0097b2]/15 text-[#198c1a] border-[#198c1a]/30',
     };
     
     const colorClass = colors[type] || 'bg-gray-50 text-gray-700 border-gray-200';
@@ -186,12 +186,16 @@ const Devices = () => {
   const uniqueInterfaces = [...new Set(devices.map(d => d.interface))];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-6 relative overflow-hidden">
-      {/* Background decorative elements */}
+    <div className="min-h-screen bg-white p-6 relative overflow-hidden">
+      {/* Perfect gradient background that merges beautifully in the middle */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-emerald-400/20 to-blue-600/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-pink-400/10 to-yellow-400/10 rounded-full blur-3xl animate-ping"></div>
+        {/* Main gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2]/8 via-[#198c1a]/12 to-[#0097b2]/8"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0097b2]/6 via-[#198c1a]/10 to-[#0097b2]/6"></div>
+        
+        {/* Subtle decorative elements */}
+        <div className="absolute top-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-[#0097b2]/5 via-[#198c1a]/8 to-[#0097b2]/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 left-1/3 w-72 h-72 bg-gradient-to-tl from-[#198c1a]/6 via-[#0097b2]/4 to-[#198c1a]/6 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
 
       {/* Header */}
@@ -199,28 +203,28 @@ const Devices = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-blue-600 rounded-2xl blur opacity-75 animate-pulse"></div>
-              <div className="relative p-4 bg-gradient-to-r from-emerald-600 to-blue-600 rounded-2xl shadow-xl">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2] to-[#198c1a] rounded-2xl blur opacity-75 animate-pulse"></div>
+              <div className="relative p-4 bg-gradient-to-r from-[#0097b2] to-[#198c1a] rounded-2xl shadow-xl">
                 <Server className="text-white drop-shadow-lg" size={28} />
               </div>
             </div>
             <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-1 tracking-tight">
+              <h1 className="text-4xl font-black text-gray-800 mb-1 tracking-tight drop-shadow-lg">
                 Device Management
               </h1>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div>
-                <p className="text-gray-600 text-lg font-medium">Monitor and manage all connected devices</p>
+                <div className="w-2 h-2 bg-[#198c1a] rounded-full animate-ping"></div>
+                <p className="text-gray-700 text-lg font-medium drop-shadow-sm">Monitor and manage all connected devices</p>
               </div>
             </div>
           </div>
           
           {/* Header Stats */}
           <div className="flex items-center gap-3">
-            <div className="px-4 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 border border-blue-200 rounded-full shadow-md">
+            <div className="px-4 py-2 bg-white/80 border border-[#198c1a]/20 rounded-full shadow-md backdrop-blur-sm">
               <div className="flex items-center gap-2">
-                <Server size={14} className="text-blue-600" />
-                <span className="text-sm font-semibold text-blue-700">{devices.length} Devices</span>
+                <Server size={14} className="text-[#198c1a]" />
+                <span className="text-sm font-semibold text-gray-700">{devices.length} Devices</span>
               </div>
             </div>
           </div>
@@ -239,18 +243,18 @@ const Devices = () => {
 
       {/* Search and Filters */}
       <div className="mb-8 relative z-10">
-        <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl shadow-lg p-6">
+        <div className="bg-white/95 backdrop-blur-md border border-white/30 rounded-xl shadow-xl p-6">
           <div className="space-y-6">
             {/* Search Bar */}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-emerald-500" />
+                <Search className="h-5 w-5 text-[#0097b2]" />
               </div>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/90 backdrop-blur-sm transition-all duration-200"
+                className="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] bg-white/95 backdrop-blur-sm transition-all duration-200"
                 placeholder="Search devices by name, reference, type, or interface..."
               />
             </div>
@@ -263,7 +267,7 @@ const Devices = () => {
                 <select
                   value={selectedInterface}
                   onChange={(e) => setSelectedInterface(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/90"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] bg-white/95"
                 >
                   <option value="all">All Interfaces</option>
                   {uniqueInterfaces.map(iface => (
@@ -278,7 +282,7 @@ const Devices = () => {
                 <select
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/90"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] bg-white/95"
                 >
                   <option value="all">All Types</option>
                   {uniqueTypes.map(type => (
@@ -295,7 +299,7 @@ const Devices = () => {
                 <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/90"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] bg-white/95"
                 >
                   <option value="all">All Status</option>
                   <option value="--">Not Monitored</option>
@@ -304,10 +308,10 @@ const Devices = () => {
 
               {/* Results Counter */}
               <div className="flex items-end">
-                <div className="w-full px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                <div className="w-full px-4 py-2 bg-gradient-to-r from-[#0097b2]/10 to-[#198c1a]/10 rounded-lg border border-[#0097b2]/30">
                   <div className="flex items-center gap-2">
-                    <Filter size={16} className="text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">
+                    <Filter size={16} className="text-[#0097b2]" />
+                    <span className="text-sm font-medium text-[#0097b2]">
                       {filteredDevices.length} of {devices.length} devices
                     </span>
                   </div>
@@ -322,17 +326,17 @@ const Devices = () => {
       <div className="relative z-10">
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-white/40 to-blue-50/40 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl"></div>
-          <div className="relative bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="relative bg-white/90 backdrop-blur-xl border border-white/40 rounded-2xl shadow-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full">
-                <thead className="bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
+                <thead className="bg-gradient-to-r from-[#0097b2] to-[#198c1a] border-b border-[#0097b2]">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Device</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Reference</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Type</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Interface</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Details</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Device</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Reference</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Interface</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Details</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -367,17 +371,17 @@ const Devices = () => {
                       <tr 
                         key={`${device.interface}-${device.device_name}-${index}`} 
                         onClick={() => openDeviceDetails(device)}
-                        className="hover:bg-blue-50 hover:shadow-md transition-all duration-200 cursor-pointer group"
+                        className="hover:bg-gradient-to-r hover:from-[#0097b2]/5 hover:to-[#198c1a]/5 hover:shadow-md hover:transform hover:translate-x-1 transition-all duration-200 cursor-pointer group"
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="flex-shrink-0">
-                              <div className="w-10 h-10 bg-gradient-to-r from-emerald-100 to-blue-100 rounded-lg flex items-center justify-center border border-emerald-200 group-hover:shadow-md transition-shadow duration-200">
-                                <Server className="w-5 h-5 text-emerald-600 group-hover:scale-110 transition-transform duration-200" />
+                              <div className="w-10 h-10 bg-gradient-to-r from-[#0097b2]/20 to-[#198c1a]/20 rounded-lg flex items-center justify-center border border-[#0097b2]/30 group-hover:shadow-md transition-shadow duration-200">
+                                <Server className="w-5 h-5 text-[#0097b2] group-hover:scale-110 transition-transform duration-200" />
                               </div>
                             </div>
                             <div>
-                              <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">{device.device_name}</div>
+                              <div className="text-sm font-semibold text-gray-900 group-hover:text-[#0097b2] transition-colors duration-200">{device.device_name}</div>
                               <div className="text-xs text-gray-500">ID: {device.device_id}</div>
                             </div>
                           </div>

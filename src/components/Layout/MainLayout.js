@@ -1,48 +1,37 @@
 import React from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import { useAppSelector } from '../../hooks/redux';
-import Overview from '../../pages/Overview';
-import Network from '../../pages/Network';
-import Devices from '../../pages/Devices';
-import Logs from '../../pages/Logs';
-import Alerts from '../../pages/Alerts';
-import Settings from '../../pages/Settings';
-import Control from '../../pages/Control';
 
-const MainLayout = () => {
-  const { activeTab } = useAppSelector((state) => state.navigation);
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return <Overview />;
-      case 'network':
-        return <Network />;
-      case 'devices':
-        return <Devices />;
-      case 'logs':
-        return <Logs />;
-      case 'alerts':
-        return <Alerts />;
-      case 'settings':
-        return <Settings />;
-      case 'control':
-        return <Control />;
-      default:
-        return <Overview />;
-    }
-  };
+const MainLayout = ({ children }) => {
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-white relative overflow-hidden">
+      {/* Perfect gradient that merges from #0097b2 to #198c1a in the middle */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2]/10 via-[#198c1a]/15 to-[#0097b2]/10 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0097b2]/8 via-[#198c1a]/12 to-[#0097b2]/8 pointer-events-none"></div>
+      
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300 relative min-w-0">
         <Header />
         <main className="flex-1 overflow-auto p-6">
-          {renderContent()}
+          <div className="relative z-10">
+            {children}
+          </div>
         </main>
       </div>
+      
+      {/* Global styles for resize cursor */}
+      <style jsx global>{`
+        .resizing {
+          cursor: col-resize !important;
+          user-select: none;
+        }
+        
+        .resizing * {
+          cursor: col-resize !important;
+          user-select: none;
+        }
+      `}</style>
     </div>
   );
 };

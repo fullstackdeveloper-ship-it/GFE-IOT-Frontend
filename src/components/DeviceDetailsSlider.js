@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, Database, Save, Search, Edit3 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useAppSelector } from '../hooks/redux';
 
 const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
+  const { sensorData, socketData, isConnected, lastUpdate } = useAppSelector(
+    (state) => state.sensor
+  );
+  console.log(sensorData,'sensorDatasensorDatasensorData');
   const [blueprint, setBlueprint] = useState(null);
   const [loading, setLoading] = useState(false);
   const [registers, setRegisters] = useState([]);
@@ -12,6 +17,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   const [showValueModal, setShowValueModal] = useState(false);
   const [selectedRegister, setSelectedRegister] = useState(null);
   const [modalValue, setModalValue] = useState('');
+  const [mappedData,setMappedData]=useState({})
 
   const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -48,6 +54,12 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
       }
       
       const data = await response.json();
+      if(data)(
+        console.log(data.registers,'registersssss'
+        )
+      )
+      console.log(data,'data from blueprint');
+      
       setBlueprint(data);
       setRegisters(data.registers || []);
     } catch (error) {
@@ -124,7 +136,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
       return (
         <button
           onClick={() => openValueModal(register)}
-          className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-110"
+          className="p-2 bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white rounded-lg hover:from-[#007a93] hover:to-[#147015] transition-all duration-200 shadow-sm hover:shadow-md hover:scale-110"
           title={`Set value for ${register.long_name}`}
         >
           <Edit3 className="w-4 h-4" />
@@ -138,7 +150,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   if (!device) return null;
 
   return (
-    <>
+    <>setMappedData
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black transition-opacity duration-500 z-40 ${
@@ -155,13 +167,13 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
       >
         <div className="h-full flex flex-col">
           {/* Enhanced Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-6">
+          <div className="bg-gradient-to-r from-[#0097b2] to-[#198c1a] px-6 py-6">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-white mb-1">
                   {device.device_name}
                 </h1>
-                <div className="flex items-center gap-4 text-blue-100 text-sm">
+                <div className="flex items-center gap-4 text-white/80 text-sm">
                   <span>{device.device_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
                   <span>•</span>
                   <span>{device.interface}</span>
@@ -184,7 +196,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
             {loading ? (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
-                  <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                  <div className="w-8 h-8 border-3 border-[#0097b2] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
                   <p className="text-gray-600 font-medium">Loading parameters...</p>
                 </div>
               </div>
@@ -199,7 +211,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
             ) : (
               <div className="h-full flex flex-col">
                 {/* Search Bar */}
-                <div className="p-6 border-b border-gray-200 bg-gray-50">
+                <div className="p-6 border-b border-white/20 bg-gradient-to-r from-[#0097b2]/5 to-[#198c1a]/5">
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Search className="h-5 w-5 text-gray-400" />
@@ -208,7 +220,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                       type="text"
                       value={parameterSearch}
                       onChange={(e) => setParameterSearch(e.target.value)}
-                      className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
+                      className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] bg-white transition-all duration-200"
                       placeholder="Search parameters by name, unit, or description..."
                     />
                     {parameterSearch && (
@@ -244,18 +256,18 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                       <div className="overflow-x-auto">
                         <table className="min-w-full">
-                          <thead className="bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
+                          <thead className="bg-gradient-to-r from-[#0097b2] to-[#198c1a] border-b border-[#0097b2]">
                                                           <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Parameter</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Value</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Unit</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Parameter</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Value</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Unit</th>
                               </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
                             {filteredRegisters.map((register, index) => (
                               <tr 
                                 key={register.id || index} 
-                                className="hover:bg-gray-50 transition-colors duration-200"
+                                className="hover:bg-gradient-to-r hover:from-[#0097b2]/5 hover:to-[#198c1a]/5 transition-all duration-200 hover:transform hover:translate-x-1 hover:shadow-md"
                                 style={{ 
                                   animation: `slideInLeft 0.3s ease-out ${index * 0.03}s both` 
                                 }}
@@ -295,9 +307,9 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
       {showValueModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60]">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-100">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl">
+            <div className="flex items-center justify-between p-6 border-b border-white/20 bg-gradient-to-r from-[#0097b2]/10 to-[#198c1a]/10 rounded-t-xl">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-600 rounded-lg">
+                <div className="p-2 bg-gradient-to-r from-[#0097b2] to-[#198c1a] rounded-lg">
                   <Edit3 className="text-white" size={20} />
                 </div>
                 <div>
@@ -326,7 +338,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                     type="text"
                     value={modalValue}
                     onChange={(e) => setModalValue(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200"
                     placeholder="Enter value..."
                     autoFocus
                     onKeyPress={(e) => {
@@ -340,7 +352,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
               </div>
             </div>
 
-            <div className="flex gap-3 p-6 bg-gray-50 rounded-b-xl border-t border-gray-100">
+            <div className="flex gap-3 p-6 bg-gradient-to-r from-[#0097b2]/5 to-[#198c1a]/5 rounded-b-xl border-t border-white/20">
               <button
                 onClick={closeValueModal}
                 className="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium"
@@ -349,7 +361,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
               </button>
               <button
                 onClick={confirmValueChange}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+                className="flex-1 bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white px-4 py-3 rounded-lg hover:from-[#007a93] hover:to-[#147015] transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
               >
                 Confirm
               </button>

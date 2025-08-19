@@ -15,9 +15,21 @@ const Settings = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-white p-6 space-y-6 relative overflow-hidden">
+      {/* Perfect gradient background that merges beautifully in the middle */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Main gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2]/8 via-[#198c1a]/12 to-[#0097b2]/8"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0097b2]/6 via-[#198c1a]/10 to-[#0097b2]/6"></div>
+        
+        {/* Subtle decorative elements */}
+        <div className="absolute top-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-[#0097b2]/5 via-[#198c1a]/8 to-[#0097b2]/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 left-1/3 w-72 h-72 bg-gradient-to-tl from-[#198c1a]/6 via-[#0097b2]/4 to-[#198c1a]/6 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+
+      <div className="relative z-10 space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-xl shadow-[#198c1a]/5 border border-[#198c1a]/15 p-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Settings</h2>
@@ -36,7 +48,7 @@ const Settings = () => {
       </div>
 
       {/* Socket Configuration */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-xl shadow-[#198c1a]/5 border border-[#198c1a]/15 p-6">
         <div className="flex items-center space-x-3 mb-6">
           <Wifi className="text-blue-500" size={20} />
           <h3 className="text-lg font-semibold text-gray-900">Socket Configuration</h3>
@@ -103,6 +115,7 @@ const Settings = () => {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

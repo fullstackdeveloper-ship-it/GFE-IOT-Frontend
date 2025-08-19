@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppSelector } from '../hooks/redux';
-import { Wifi, WifiOff, X, Edit, Plus, Trash2, Network as NetworkIcon, Router, Server, Cable, Globe, Globe2, Search, Filter } from 'lucide-react';
+import { Wifi, WifiOff, X, Edit, Plus, Trash2, Network as NetworkIcon, Router, Server, Cable, Globe, Globe2, Search, Filter, RefreshCw } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -690,7 +690,7 @@ const Network = () => {
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 bg-gray-300 rounded-full animate-pulse"></div>
             <span className="text-xs text-gray-500">Checking...</span>
-          </div>
+      </div>
         </div>
       );
     }
@@ -716,34 +716,77 @@ const Network = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-6 relative overflow-hidden">
-      {/* Background decorative elements */}
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      {/* Perfect gradient background that merges beautifully in the middle */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-emerald-400/20 to-blue-600/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-pink-400/10 to-yellow-400/10 rounded-full blur-3xl animate-ping"></div>
+        {/* Main gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2]/8 via-[#198c1a]/12 to-[#0097b2]/8"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0097b2]/6 via-[#198c1a]/10 to-[#0097b2]/6"></div>
+        
+        {/* Subtle decorative elements */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-[#0097b2]/5 via-[#198c1a]/8 to-[#0097b2]/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/3 w-80 h-80 bg-gradient-to-tl from-[#198c1a]/6 via-[#0097b2]/4 to-[#198c1a]/6 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
-      {/* Header */}
-      <div className="mb-8 relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-75 animate-pulse"></div>
-              <div className="relative p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-xl">
-                <NetworkIcon className="text-white drop-shadow-lg" size={28} />
+      {/* Enhanced Header with professional design */}
+      <div className="p-6 mb-8 relative z-10">
+        <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 border border-[#198c1a]/20 shadow-2xl shadow-[#198c1a]/10">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-6">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2] to-[#198c1a] rounded-2xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="relative p-5 bg-gradient-to-r from-[#0097b2] to-[#198c1a] rounded-2xl shadow-2xl transform group-hover:scale-110 transition-transform duration-300">
+                  <NetworkIcon className="text-white drop-shadow-lg" size={32} />
+                </div>
               </div>
-            </div>
-            <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text text-transparent mb-1 tracking-tight">
-                Network Management
-              </h1>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
-                <p className="text-gray-600 text-lg font-medium">Manage network interfaces and connected devices</p>
+              <div>
+                <div className="flex items-center space-x-2 text-gray-600 text-sm mb-2">
+                  <span>IoT Dashboard</span>
+                  <span>/</span>
+                  <span className="text-[#198c1a] font-medium">Network</span>
+                </div>
+                <h1 className="text-5xl font-black text-gray-800 mb-2 tracking-tight drop-shadow-lg">
+                  Network Management
+                </h1>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-[#198c1a] rounded-full animate-pulse shadow-lg"></div>
+                  <p className="text-gray-700 text-lg font-medium drop-shadow-sm">Advanced network interface and device management</p>
+                </div>
               </div>
             </div>
           </div>
           
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-[#198c1a]/20 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-gray-600 text-sm">Total Devices</div>
+                  <div className="text-2xl font-bold text-[#198c1a]">
+                    {Object.values(filteredDevices).reduce((total, devices) => total + devices.length, 0)}
+                  </div>
+                </div>
+                <Server className="w-8 h-8 text-[#198c1a]/60" />
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-[#0097b2]/20 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-gray-600 text-sm">Active Interfaces</div>
+                  <div className="text-2xl font-bold text-[#0097b2]">4</div>
+                </div>
+                <Router className="w-8 h-8 text-[#0097b2]/60" />
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-[#198c1a]/20 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-gray-600 text-sm">Connectivity</div>
+                  <div className="text-2xl font-bold text-[#198c1a]">Healthy</div>
+                </div>
+                <Globe2 className="w-8 h-8 text-[#198c1a]/60" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -757,56 +800,73 @@ const Network = () => {
         position="top-right"
       />
 
-      {/* Search and Controls */}
-      <div className="mb-6">
-        <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between gap-4">
-            {/* Search Bar */}
-            <div className="flex-1 max-w-md">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
+            {/* Enhanced Search and Controls */}
+      <div className="px-6 mb-8">
+        <div className="bg-white/95 backdrop-blur-xl border border-[#198c1a]/15 rounded-2xl shadow-xl shadow-[#198c1a]/5 p-6 hover:shadow-2xl hover:shadow-[#198c1a]/10 transition-all duration-300">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            {/* Advanced Search Bar */}
+            <div className="flex-1 max-w-2xl">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-[#0097b2] group-hover:scale-110 transition-transform duration-200" />
                 </div>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/90 backdrop-blur-sm transition-all duration-200"
-                  placeholder="Search devices by name, protocol, or reference..."
+                  className="block w-full pl-12 pr-12 py-4 border-2 border-[#198c1a]/20 rounded-xl text-sm placeholder-gray-500 focus:ring-4 focus:ring-[#198c1a]/20 focus:border-[#198c1a] bg-white/95 backdrop-blur-sm transition-all duration-300 shadow-lg hover:shadow-xl focus:shadow-[#198c1a]/10"
+                  placeholder="🔍 Search devices by name, protocol, reference, or interface..."
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-[#0097b2] transition-all duration-200 hover:scale-110"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-5 w-5" />
                   </button>
                 )}
+                {/* Search suggestions indicator */}
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#0097b2]/5 to-[#198c1a]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+        </div>
+      </div>
+
+            {/* Enhanced Controls */}
+            <div className="flex items-center gap-4">
+              {/* Live Device Counter with animation */}
+              <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-[#0097b2]/15 to-[#198c1a]/15 rounded-xl border-2 border-[#0097b2]/30 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="relative">
+                  <Server size={20} className="text-[#0097b2]" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-[#0097b2]">
+                    {Object.values(filteredDevices).reduce((total, devices) => total + devices.length, 0)}
+                  </div>
+                  <div className="text-xs text-[#0097b2]/70 font-medium">
+                    {searchQuery ? 'Found' : 'Total'}
+                  </div>
+                </div>
               </div>
-      </div>
 
-            {/* Controls */}
-            <div className="flex items-center gap-3">
-              {/* Total Devices Counter */}
-              <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                <Server size={16} className="text-blue-600" />
-                <span className="text-sm font-medium text-blue-800">
-                  {Object.values(filteredDevices).reduce((total, devices) => total + devices.length, 0)} devices
-                  {searchQuery && (
-                    <span className="text-blue-600"> found</span>
-                  )}
-          </span>
-      </div>
+              {/* Quick Actions */}
+              <div className="flex items-center gap-2">
+                {/* Refresh Button */}
+                <button 
+                  onClick={refreshConnectivity}
+                  className="p-3 bg-white/80 backdrop-blur-sm rounded-xl border-2 border-[#0097b2]/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 hover:bg-[#0097b2]/10 group"
+                  title="Refresh Connectivity"
+                >
+                  <RefreshCw className="w-5 h-5 text-[#0097b2] group-hover:rotate-180 transition-transform duration-500" />
+                </button>
 
-              {/* Refresh Connectivity Button */}
-             
-              {/* Filter Indicator */}
-              {searchQuery && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 text-amber-800 rounded-lg border border-amber-200">
-                  <Filter size={14} />
-                  <span className="text-xs font-medium">Filtered</span>
+                {/* Filter Status */}
+                {searchQuery && (
+                  <div className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-100 to-orange-100 text-orange-700 rounded-xl border-2 border-orange-200 shadow-lg animate-bounce-gentle">
+                    <Filter size={16} />
+                    <span className="text-sm font-semibold">Active Filter</span>
         </div>
       )}
+              </div>
             </div>
           </div>
         </div>
@@ -816,17 +876,17 @@ const Network = () => {
       <div className="mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 h-[75vh]">
           {['eth1','wifi','serial_1','serial_2'].map((ifaceKey) => (
-            <div key={ifaceKey} className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col h-full">
+            <div key={ifaceKey} className="bg-white/95 backdrop-blur-md border border-[#198c1a]/15 rounded-xl shadow-xl shadow-[#198c1a]/5 hover:shadow-2xl hover:shadow-[#198c1a]/10 transition-all duration-300 flex flex-col h-full">
               {/* Header with interface icon and name */}
-              <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white rounded-t-xl">
+              <div className="px-6 py-4 border-b border-white/30 bg-gradient-to-r from-[#0097b2]/5 to-[#198c1a]/5 rounded-t-xl">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     {ifaceKey.startsWith('eth') ? (
-                      <Router className="text-blue-600" size={20} />
+                      <Router className="text-[#0097b2]" size={20} />
                     ) : ifaceKey === 'wifi' ? (
-                      <Wifi className="text-purple-600" size={20} />
+                      <Wifi className="text-[#198c1a]" size={20} />
                     ) : (
-                      <Cable className="text-green-600" size={20} />
+                      <Cable className="text-[#0097b2]" size={20} />
                     )}
                     <div>
                       <div className="font-semibold text-gray-800 text-lg">{ifaceKey}</div>
@@ -845,7 +905,7 @@ const Network = () => {
                         openSerialEdit(map[ifaceKey]);
                       }
                     }}
-                    className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg hover:from-gray-800 hover:to-gray-900 transition-all duration-200 shadow-md hover:shadow-lg"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white rounded-lg hover:from-[#007a93] hover:to-[#147015] transition-all duration-200 shadow-md hover:shadow-lg"
                   >
                     <Edit size={14} /> Edit
           </button>
@@ -858,7 +918,7 @@ const Network = () => {
           
               
               {/* Device Count */}
-              <div className="px-6 py-3 text-sm text-gray-600 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50">
+              <div className="px-6 py-3 text-sm text-gray-600 border-b border-white/20 bg-gradient-to-r from-[#0097b2]/5 to-[#198c1a]/5">
                 <div className="flex items-center gap-2">
                   <Server size={14} className="text-gray-500" />
                   {isLoadingDevices ? (
@@ -877,27 +937,27 @@ const Network = () => {
               {/* Devices List */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {(filteredDevices[ifaceKey] || []).map((dev) => (
-                  <div key={dev.device_name} className="group border border-gray-200 rounded-lg p-4 hover:shadow-xl hover:border-blue-300 hover:-translate-y-1 transition-all duration-300 bg-white/70 backdrop-blur-sm hover:bg-white/90 cursor-pointer">
+                  <div key={dev.device_name} className="group border border-white/40 rounded-lg p-4 hover:shadow-xl hover:border-[#0097b2]/50 hover:-translate-y-1 transition-all duration-300 bg-white/80 backdrop-blur-sm hover:bg-white/95 cursor-pointer">
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="text-sm font-semibold text-gray-900 mb-1">
                           {highlightSearchTerm(dev.device_name, searchQuery)}
                         </div>
-                        <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-2">
+                        <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-[#0097b2]/20 to-[#198c1a]/20 text-[#0097b2] mb-2">
                           {highlightSearchTerm(dev.protocol, searchQuery)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         <button 
                           onClick={() => openEditDeviceModal(ifaceKey, dev)} 
-                          className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg"
+                          className="p-2 rounded-lg bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white hover:from-[#007a93] hover:to-[#147015] transition-all duration-200 shadow-md hover:shadow-lg"
                           title="Edit Device"
                         >
                           <Edit size={16} />
                         </button>
                         <button 
                           onClick={() => deleteDevice(ifaceKey, dev)} 
-                          className="p-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors duration-200 shadow-md hover:shadow-lg"
+                          className="p-2 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg"
                           title="Delete Device"
                         >
                           <Trash2 size={16} />
@@ -954,10 +1014,10 @@ const Network = () => {
                     )}
           </div>
         )}
-         <div className="px-6 py-4 border-b border-gray-100">
+         <div className="px-6 py-4 border-b border-white/20">
                 <button 
                   onClick={() => openAddDeviceModal(ifaceKey)} 
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-gradient-to-r from-[#198c1a] to-[#0097b2] text-white rounded-lg hover:from-[#147015] hover:to-[#007a93] transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
                 >
                   <Plus size={16} /> Add Device
                 </button>
@@ -982,17 +1042,59 @@ const Network = () => {
             margin: 4px;
           }
           .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: linear-gradient(to bottom, #cbd5e1, #94a3b8);
+            background: linear-gradient(to bottom, #0097b2, #198c1a);
             border-radius: 4px;
             border: 1px solid #e2e8f0;
             transition: all 0.2s ease;
           }
           .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(to bottom, #94a3b8, #64748b);
+            background: linear-gradient(to bottom, #007a93, #147015);
             transform: scale(1.05);
           }
           .custom-scrollbar::-webkit-scrollbar-thumb:active {
-            background: linear-gradient(to bottom, #64748b, #475569);
+            background: linear-gradient(to bottom, #006580, #0f5a11);
+          }
+          
+          @keyframes bounce-gentle {
+            0%, 20%, 50%, 80%, 100% {
+              transform: translateY(0);
+            }
+            40% {
+              transform: translateY(-4px);
+            }
+            60% {
+              transform: translateY(-2px);
+            }
+          }
+          
+          .animate-bounce-gentle {
+            animation: bounce-gentle 2s infinite;
+          }
+          
+          @keyframes float {
+            0%, 100% {
+              transform: translateY(0px);
+            }
+            50% {
+              transform: translateY(-10px);
+            }
+          }
+          
+          .animate-float {
+            animation: float 6s ease-in-out infinite;
+          }
+          
+          @keyframes glow {
+            0%, 100% {
+              box-shadow: 0 0 5px rgba(0, 151, 178, 0.5);
+            }
+            50% {
+              box-shadow: 0 0 20px rgba(0, 151, 178, 0.8), 0 0 30px rgba(25, 140, 26, 0.4);
+            }
+          }
+          
+          .animate-glow {
+            animation: glow 2s ease-in-out infinite;
           }
         `}</style>
         </div>
@@ -1023,9 +1125,9 @@ const Network = () => {
         return (
           <div key={`modal-${ifaceKey}`} className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg transform transition-all duration-300 scale-100">
-              <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
+              <div className="flex items-center justify-between p-6 border-b border-white/20 bg-gradient-to-r from-[#0097b2]/10 to-[#198c1a]/10 rounded-t-2xl">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-600 rounded-lg">
+                  <div className="p-2 bg-gradient-to-r from-[#0097b2] to-[#198c1a] rounded-lg">
                     <Plus className="text-white" size={20} />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900">
@@ -1057,7 +1159,7 @@ const Network = () => {
                 <select
                       value={d.reference || ''} 
                       onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, reference: e.target.value } } }))} 
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200"
                     >
                       <option value="" disabled>Select reference…</option>
                       {(references || []).map((r) => (<option key={r} value={r}>{r}</option>))}
@@ -1098,7 +1200,7 @@ const Network = () => {
                         const value = Math.max(0, Math.min(255, Number(e.target.value)));
                         setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, device_id: value } } }))
                       }} 
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" 
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200" 
                       placeholder="0-255"
                     />
                   </div>
@@ -1110,7 +1212,7 @@ const Network = () => {
                       min="0.1" 
                       value={d.response_timeout ?? ''} 
                       onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, response_timeout: Number(e.target.value) } } }))} 
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" 
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200" 
                       placeholder="0.5"
                     />
                   </div>
@@ -1124,7 +1226,7 @@ const Network = () => {
                   type="text"
                           value={d.device_ip || ''} 
                           onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, device_ip: e.target.value } } }))} 
-                          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" 
+                          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200" 
                           placeholder="192.168.1.100"
                 />
               </div>
@@ -1136,7 +1238,7 @@ const Network = () => {
                           max="65535" 
                           value={d.tcp_port ?? ''} 
                           onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, tcp_port: Number(e.target.value) } } }))} 
-                          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" 
+                          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200" 
                           placeholder="502"
                 />
               </div>
@@ -1147,7 +1249,7 @@ const Network = () => {
                           type="checkbox" 
                           checked={!!d.keep_tcp_seasion_open} 
                           onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, keep_tcp_seasion_open: e.target.checked } } }))} 
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-gray-300 text-[#0097b2] focus:ring-[#0097b2]"
                         />
                         <span className="font-medium">Keep TCP Session Open</span>
                       </label>
@@ -1156,7 +1258,7 @@ const Network = () => {
                           type="checkbox" 
                           checked={!!d.cocurrent_access} 
                           onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, cocurrent_access: e.target.checked } } }))} 
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-gray-300 text-[#0097b2] focus:ring-[#0097b2]"
                         />
                         <span className="font-medium">Concurrent Access</span>
                       </label>
@@ -1171,13 +1273,13 @@ const Network = () => {
                       min="0.1" 
                       value={d.byte_timeout ?? ''} 
                       onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, byte_timeout: Number(e.target.value) } } }))} 
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200" 
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200" 
                       placeholder="0.5"
                     />
                   </div>
                 )}
               </div>
-              <div className="flex gap-3 p-6 bg-gray-50 rounded-b-2xl border-t border-gray-100">
+              <div className="flex gap-3 p-6 bg-gradient-to-r from-[#0097b2]/5 to-[#198c1a]/5 rounded-b-2xl border-t border-white/20">
                 <button 
                   onClick={() => closeDeviceModal(ifaceKey)} 
                   className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium"
@@ -1186,7 +1288,7 @@ const Network = () => {
                 </button>
                 <button 
                   onClick={() => submitDeviceModal(ifaceKey)} 
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+                  className="flex-1 bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white px-6 py-3 rounded-lg hover:from-[#007a93] hover:to-[#147015] transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
                 >
                   {modal.mode === 'add' ? 'Add Device' : 'Update Device'}
                 </button>
@@ -1200,9 +1302,9 @@ const Network = () => {
       {showNetworkModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-100">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-white/20 bg-gradient-to-r from-[#0097b2]/10 to-[#198c1a]/10 rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-600 rounded-lg">
+                <div className="p-2 bg-gradient-to-r from-[#0097b2] to-[#198c1a] rounded-lg">
                   <Router className="text-white" size={20} />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900">
@@ -1242,11 +1344,11 @@ const Network = () => {
               );
             })()}
 
-            <div className="p-6 bg-gray-50 rounded-b-2xl border-t border-gray-100">
+            <div className="p-6 bg-gradient-to-r from-[#0097b2]/5 to-[#198c1a]/5 rounded-b-2xl border-t border-white/20">
                 <button
                   type="button"
                   onClick={() => setShowNetworkModal(false)}
-                className="w-full bg-gradient-to-r from-gray-700 to-gray-800 text-white px-6 py-3 rounded-lg hover:from-gray-800 hover:to-gray-900 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+                className="w-full bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white px-6 py-3 rounded-lg hover:from-[#007a93] hover:to-[#147015] transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
                 >
                 Close
                 </button>
