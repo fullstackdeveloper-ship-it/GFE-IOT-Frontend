@@ -1,25 +1,100 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Database, Save, Search, Edit3 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAppSelector } from '../hooks/redux';
+import socketService from '../services/socketService';
 
 const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
-  const { sensorData, socketData, isConnected, lastUpdate } = useAppSelector(
-    (state) => state.sensor
-  );
-  console.log(sensorData,'sensorDatasensorDatasensorData');
   const [blueprint, setBlueprint] = useState(null);
   const [loading, setLoading] = useState(false);
   const [registers, setRegisters] = useState([]);
-  const [editableValues, setEditableValues] = useState({});
   const [parameterSearch, setParameterSearch] = useState('');
   const [filteredRegisters, setFilteredRegisters] = useState([]);
   const [showValueModal, setShowValueModal] = useState(false);
   const [selectedRegister, setSelectedRegister] = useState(null);
   const [modalValue, setModalValue] = useState('');
-  const [mappedData,setMappedData]=useState({})
+  const [liveValues, setLiveValues] = useState({});
+  const [lastUpdateTime, setLastUpdateTime] = useState(null);
+  const deviceKey = device?.device_name || null;
 
   const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
+  // Subscribe to per-device room on open; leave on close/unmount
+  useEffect(() => {
+    const socket = socketService.socket;
+    if (!socket || !deviceKey) return;
+
+    const room = `sensor:${deviceKey}`;
+
+    const onSensorData = (dict) => {
+      if (dict && typeof dict === 'object' && !Array.isArray(dict)) {
+        setLiveValues(prev => {
+          const newValues = { ...prev, ...dict };
+          console.log(`📊 Live values updated for ${deviceKey}:`, newValues);
+          return newValues;
+        });
+        
+        // Update timestamp for continuous streaming
+        if (dict._timestamp) {
+          try {
+            const timestamp = parseInt(dict._timestamp);
+            if (!isNaN(timestamp)) {
+              const dateObj = new Date(timestamp);
+              if (!isNaN(dateObj.getTime())) {
+                setLastUpdateTime(dateObj);
+              } else {
+                setLastUpdateTime(new Date());
+              }
+            } else {
+              setLastUpdateTime(new Date());
+            }
+          } catch (error) {
+            console.warn('Invalid timestamp received:', dict._timestamp);
+            setLastUpdateTime(new Date());
+          }
+        } else {
+          setLastUpdateTime(new Date());
+        }
+      }
+    };
+
+    if (isOpen) {
+      console.log(`🔌 Joining room: ${room}`);
+      socket.emit('join-room', room);
+      socket.on('sensor-data', onSensorData);
+    }
+
+    return () => {
+      console.log(`🔌 Leaving room: ${room}`);
+      socket.off('sensor-data', onSensorData);
+      socket.emit('leave-room', room);
+    };
+  }, [isOpen, deviceKey]);
+
+  // Clear live values when slider closes or device changes
+  useEffect(() => {
+    if (!isOpen || !deviceKey) {
+      setLiveValues({});
+      setLastUpdateTime(null);
+      console.log(`🧹 Cleared live values for ${deviceKey || 'unknown'}`);
+    }
+  }, [isOpen, deviceKey]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (deviceKey) {
+        const socket = socketService.socket;
+        if (socket) {
+          const room = `sensor:${deviceKey}`;
+          console.log(`🔌 Cleanup: Leaving room ${room}`);
+          socket.emit('leave-room', room);
+        }
+        setLiveValues({});
+        setLastUpdateTime(null);
+      }
+    };
+  }, [deviceKey]);
 
   useEffect(() => {
     if (isOpen && device) {
@@ -54,11 +129,6 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
       }
       
       const data = await response.json();
-      if(data)(
-        console.log(data.registers,'registersssss'
-        )
-      )
-      console.log(data,'data from blueprint');
       
       setBlueprint(data);
       setRegisters(data.registers || []);
@@ -72,18 +142,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
     }
   };
 
-  const handleValueChange = (registerId, value) => {
-    setEditableValues(prev => ({
-      ...prev,
-      [registerId]: value
-    }));
-  };
 
-  const handleSaveValue = (registerId) => {
-    // TODO: Implement save logic when backend is ready
-    console.log('Saving value for register:', registerId, 'Value:', editableValues[registerId]);
-    toast.success('Value saved successfully');
-  };
 
   const openValueModal = (register) => {
     setSelectedRegister(register);
@@ -119,10 +178,11 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   };
 
   const renderValueDisplay = (register) => {
-    // Always show a simple dash for value display
+    const val = liveValues?.[register.short_name];
+    const display = (val ?? val === 0) ? String(val) : '—';
     return (
       <span className="text-sm font-mono text-gray-600 px-3 py-2 bg-gray-50 rounded border min-w-[100px] text-center inline-block">
-        —
+        {display}
       </span>
     );
   };
@@ -170,9 +230,19 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
           <div className="bg-gradient-to-r from-[#0097b2] to-[#198c1a] px-6 py-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-white mb-1">
-                  {device.device_name}
-                </h1>
+                <div className="flex items-center gap-3 mb-1">
+                  <h1 className="text-2xl font-bold text-white">
+                    {device.device_name}
+                  </h1>
+                  {isOpen && deviceKey && lastUpdateTime && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-green-200 font-medium">
+                        {lastUpdateTime.toLocaleTimeString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center gap-4 text-white/80 text-sm">
                   <span>{device.device_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
                   <span>•</span>
@@ -288,7 +358,6 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                                     {getDisplayUnit(register)}
                                   </span>
                                 </td>
-                                    
                               </tr>
                             ))}
                           </tbody>
@@ -302,6 +371,8 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
           </div>
         </div>
       </div>
+
+
 
       {/* Value Setting Modal */}
       {showValueModal && (

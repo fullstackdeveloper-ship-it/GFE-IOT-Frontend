@@ -31,11 +31,6 @@ class SocketService {
         this.reconnectDelay = 1000; // Reset delay
         
         store.dispatch(setConnectionStatus(true));
-        store.dispatch(addLog({
-          level: 'info',
-          message: 'Connected to server',
-          timestamp: new Date().toISOString(),
-        }));
       });
 
       this.socket.on('disconnect', (reason) => {
@@ -43,11 +38,6 @@ class SocketService {
         this.isConnected = false;
         
         store.dispatch(setConnectionStatus(false));
-        store.dispatch(addLog({
-          level: 'warning',
-          message: `Disconnected from server: ${reason}`,
-          timestamp: new Date().toISOString(),
-        }));
 
         // Handle different disconnection reasons
         if (reason === 'io server disconnect') {
@@ -71,22 +61,13 @@ class SocketService {
         this.reconnectAttempts = 0;
         
         store.dispatch(setConnectionStatus(true));
-        store.dispatch(addLog({
-          level: 'info',
-          message: `Reconnected to server after ${attemptNumber} attempts`,
-          timestamp: new Date().toISOString(),
-        }));
       });
 
       this.socket.on('reconnect_attempt', (attemptNumber) => {
         console.log('Reconnection attempt', attemptNumber);
         this.reconnectAttempts = attemptNumber;
         
-        store.dispatch(addLog({
-          level: 'info',
-          message: `Reconnection attempt ${attemptNumber}`,
-          timestamp: new Date().toISOString(),
-        }));
+
       });
 
       this.socket.on('reconnect_failed', () => {
@@ -94,11 +75,6 @@ class SocketService {
         this.isConnected = false;
         
         store.dispatch(setConnectionStatus(false));
-        store.dispatch(addLog({
-          level: 'error',
-          message: `Reconnection failed after ${this.maxReconnectAttempts} attempts`,
-          timestamp: new Date().toISOString(),
-        }));
       });
 
       this.socket.on('sensor-data', (data) => {
@@ -138,20 +114,11 @@ class SocketService {
       this.socket.on('connect_error', (error) => {
         console.error('Connection error:', error);
         store.dispatch(setConnectionStatus(false));
-        store.dispatch(addLog({
-          level: 'error',
-          message: `Connection error: ${error.message}`,
-          timestamp: new Date().toISOString(),
-        }));
       });
 
     } catch (error) {
       console.error('Socket connection error:', error);
-      store.dispatch(addLog({
-        level: 'error',
-        message: `Socket connection error: ${error.message}`,
-        timestamp: new Date().toISOString(),
-      }));
+
     }
   }
 
