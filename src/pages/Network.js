@@ -142,12 +142,12 @@ const Network = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   // react-toastify handles notifications
-  const [devicesByInterface, setDevicesByInterface] = useState({ eth1: [], wifi: [], serial_1: [], serial_2: [] });
+  const [devicesByInterface, setDevicesByInterface] = useState({ eth1: [], wlan0: [], serial_1: [], serial_2: [] });
   const [references, setReferences] = useState([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [deviceModals, setDeviceModals] = useState({
     eth1: { open: false, mode: 'add', data: null, originalName: null },
-    wifi: { open: false, mode: 'add', data: null, originalName: null },
+    wlan0: { open: false, mode: 'add', data: null, originalName: null },
     serial_1: { open: false, mode: 'add', data: null, originalName: null },
     serial_2: { open: false, mode: 'add', data: null, originalName: null },
   });
@@ -183,7 +183,7 @@ const Network = () => {
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredDevices, setFilteredDevices] = useState({ eth1: [], wifi: [], serial_1: [], serial_2: [] });
+  const [filteredDevices, setFilteredDevices] = useState({ eth1: [], wlan0: [], serial_1: [], serial_2: [] });
 
   useEffect(() => {
     fetchNetworkInterfaces();
@@ -233,8 +233,8 @@ const Network = () => {
     try {
       setLoading(true);
       const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      // Use API route and request eth1,wifi in this order so we can label them consistently
-      const requestedIfaces = ['eth1', 'wifi'];
+      // Use API route and request eth1,wlan0 in this order so we can label them consistently
+      const requestedIfaces = ['eth1', 'wlan0'];
       const response = await fetch(`${backendUrl}/net/ifaces?only=${requestedIfaces.join(',')}`);
       if (response.ok) {
         const data = await response.json();
@@ -296,7 +296,7 @@ const Network = () => {
       const byIface = data.devices || {};
       setDevicesByInterface({
         eth1: Array.isArray(byIface.eth1) ? byIface.eth1 : [],
-        wifi: Array.isArray(byIface.wifi) ? byIface.wifi : [],
+        wlan0: Array.isArray(byIface.wlan0) ? byIface.wlan0 : [],
         serial_1: Array.isArray(byIface.serial_1) ? byIface.serial_1 : [],
         serial_2: Array.isArray(byIface.serial_2) ? byIface.serial_2 : [],
       });
@@ -312,7 +312,7 @@ const Network = () => {
   const fetchConnectivityStatus = async () => {
     try {
       setIsLoadingConnectivity(true);
-      const res = await fetch(`${backendUrl}/connectivity?only=eth1,wifi`);
+      const res = await fetch(`${backendUrl}/connectivity?only=eth1,wlan0`);
       if (!res.ok) throw new Error('Failed to fetch connectivity status');
       const data = await res.json();
       setConnectivityStatus(data.connectivity || {});
@@ -344,7 +344,7 @@ const Network = () => {
   // Device modal helpers
   const openAddDeviceModal = (iface) => {
     // Set default protocol based on interface
-    const defaultProtocol = (iface === 'eth1' || iface === 'wifi') ? 'modbus_tcp' : 'modbus_rtu';
+    const defaultProtocol = (iface === 'eth1' || iface === 'wlan0') ? 'modbus_tcp' : 'modbus_rtu';
     
     const defaults = {
       device_name: '',
@@ -679,7 +679,7 @@ const Network = () => {
 
   // Helper function to render connectivity indicators
   const renderConnectivityIndicators = (ifaceKey) => {
-    if (!ifaceKey.startsWith('eth') && ifaceKey !== 'wifi') {
+    if (!ifaceKey.startsWith('eth') && ifaceKey !== 'wlan0') {
       return null; // Only show for network interfaces
     }
 
@@ -875,7 +875,7 @@ const Network = () => {
       {/* 4-Column Device Management */}
       <div className="mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 h-[75vh]">
-          {['eth1','wifi','serial_1','serial_2'].map((ifaceKey) => (
+          {['eth1','wlan0','serial_1','serial_2'].map((ifaceKey) => (
             <div key={ifaceKey} className="bg-white/95 backdrop-blur-md border border-[#198c1a]/15 rounded-xl shadow-xl shadow-[#198c1a]/5 hover:shadow-2xl hover:shadow-[#198c1a]/10 transition-all duration-300 flex flex-col h-full">
               {/* Header with interface icon and name */}
               <div className="px-6 py-4 border-b border-white/30 bg-gradient-to-r from-[#0097b2]/5 to-[#198c1a]/5 rounded-t-xl">
@@ -883,7 +883,7 @@ const Network = () => {
                   <div className="flex items-center gap-3">
                     {ifaceKey.startsWith('eth') ? (
                       <Router className="text-[#0097b2]" size={20} />
-                    ) : ifaceKey === 'wifi' ? (
+                    ) : ifaceKey === 'wlan0' ? (
                       <Wifi className="text-[#198c1a]" size={20} />
                     ) : (
                       <Cable className="text-[#0097b2]" size={20} />
@@ -891,13 +891,13 @@ const Network = () => {
                     <div>
                       <div className="font-semibold text-gray-800 text-lg">{ifaceKey}</div>
                       <div className="text-xs text-gray-500">
-                        {ifaceKey.startsWith('eth') ? 'Ethernet Interface' : ifaceKey === 'wifi' ? 'WiFi Interface' : 'Serial Port'}
+                        {ifaceKey.startsWith('eth') ? 'Ethernet Interface' : ifaceKey === 'wlan0' ? 'WiFi Interface' : 'Serial Port'}
                       </div>
                     </div>
                   </div>
           <button
                     onClick={() => {
-                      if (ifaceKey === 'eth1' || ifaceKey === 'wifi') {
+                      if (ifaceKey === 'eth1' || ifaceKey === 'wlan0') {
                         const found = networkInterfaces.find((i) => i.name === ifaceKey) || { name: ifaceKey };
                         openNetworkModal(found);
                       } else {
@@ -1118,7 +1118,7 @@ const Network = () => {
       />
 
       {/* Add/Edit Device Modals per interface */}
-      {(['eth1','wifi','serial_1','serial_2']).map((ifaceKey) => {
+      {(['eth1','wlan0','serial_1','serial_2']).map((ifaceKey) => {
         const modal = deviceModals[ifaceKey];
         if (!modal.open) return null;
         const d = modal.data || {};
