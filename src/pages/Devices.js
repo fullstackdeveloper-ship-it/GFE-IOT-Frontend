@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, Server, Wifi, Cable, Router, Globe2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 import DeviceDetailsSlider from '../components/DeviceDetailsSlider';
+import ApiService from '../services/apiService';
 import 'react-toastify/dist/ReactToastify.css';
 
 const Devices = () => {
@@ -16,8 +17,6 @@ const Devices = () => {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [isSliderOpen, setIsSliderOpen] = useState(false);
 
-  const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-
   useEffect(() => {
     fetchDevices();
   }, []);
@@ -29,10 +28,7 @@ const Devices = () => {
   const fetchDevices = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${backendUrl}/devices`);
-      if (!response.ok) throw new Error('Failed to fetch devices');
-      
-      const data = await response.json();
+      const data = await ApiService.getDevices();
       
       // Flatten devices from all interfaces
       const allDevices = [];

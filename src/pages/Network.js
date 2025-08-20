@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppSelector } from '../hooks/redux';
 import { Wifi, WifiOff, X, Edit, Plus, Trash2, Network as NetworkIcon, Router, Server, Cable, Globe, Globe2, Search, Filter, RefreshCw } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
+import ApiService from '../services/apiService';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Simple helper components for the Serial Ports table and modal
@@ -212,8 +213,6 @@ const Network = () => {
     filterDevices();
   }, [devicesByInterface, searchQuery]);
 
-  const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-
   const notifySuccess = (message) => toast.success(message, { position: 'top-right' });
   const notifyError = (message) => toast.error(message, { position: 'top-right' });
 
@@ -232,25 +231,19 @@ const Network = () => {
   const fetchNetworkInterfaces = async () => {
     try {
       setLoading(true);
-      const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
       // Use API route and request eth1,wlan0 in this order so we can label them consistently
       const requestedIfaces = ['eth1', 'wlan0'];
-      const response = await fetch(`${backendUrl}/net/ifaces?only=${requestedIfaces.join(',')}`);
-      if (response.ok) {
-        const data = await response.json();
-        const list = Array.isArray(data.interfaces) ? data.interfaces : [];
-        // Attach a name inferred from the requested order since backend returns only ip/subnet/gateway/dns
-        const normalized = list.map((item, idx) => ({
-          name: requestedIfaces[idx] || `iface${idx + 1}`,
-          ip: item.ip || '',
-          subnet: item.subnet,
-          gateway: item.gateway || '',
-          dns: Array.isArray(item.dns) ? item.dns : []
-        }));
-        setNetworkInterfaces(normalized);
-      } else {
-        setError('Failed to fetch network interfaces');
-      }
+      const data = await ApiService.getNetworkInterfaces(requestedIfaces);
+      const list = Array.isArray(data.interfaces) ? data.interfaces : [];
+      // Attach a name inferred from the requested order since backend returns only ip/subnet/gateway/dns
+      const normalized = list.map((item, idx) => ({
+        name: requestedIfaces[idx] || `iface${idx + 1}`,
+        ip: item.ip || '',
+        subnet: item.subnet,
+        gateway: item.gateway || '',
+        dns: Array.isArray(item.dns) ? item.dns : []
+      }));
+      setNetworkInterfaces(normalized);
     } catch (err) {
       setError('Error fetching network interfaces: ' + err.message);
     } finally {
@@ -261,12 +254,7 @@ const Network = () => {
   const fetchSerialConfigs = async () => {
     try {
       setIsLoadingPorts(true);
-      const response = await fetch(`${backendUrl}/serial-ports`);
-      if (!response.ok) {
-        const maybe = await response.json().catch(() => ({}));
-        throw new Error(maybe.error || 'Failed to fetch serial ports');
-      }
-      const data = await response.json();
+      const data = await ApiService.getSerialPorts();
       const { dropdownOptions: dd, ...portsObj } = data || {};
       setPorts(portsObj || {});
       setDropdownOptions(
@@ -290,9 +278,7 @@ const Network = () => {
   const fetchDevices = async () => {
     try {
       setIsLoadingDevices(true);
-      const res = await fetch(`${backendUrl}/devices`);
-      if (!res.ok) throw new Error('Failed to fetch devices');
-      const data = await res.json();
+      const data = await ApiService.getDevices();
       const byIface = data.devices || {};
       setDevicesByInterface({
         eth1: Array.isArray(byIface.eth1) ? byIface.eth1 : [],
@@ -312,9 +298,7 @@ const Network = () => {
   const fetchConnectivityStatus = async () => {
     try {
       setIsLoadingConnectivity(true);
-      const res = await fetch(`${backendUrl}/connectivity?only=eth1,wlan0`);
-      if (!res.ok) throw new Error('Failed to fetch connectivity status');
-      const data = await res.json();
+      const data = await ApiService.getConnectivityStatus(['eth1', 'wlan0']);
       setConnectivityStatus(data.connectivity || {});
     } catch (e) {
       console.error('Error fetching connectivity status:', e.message);
@@ -331,9 +315,7 @@ const Network = () => {
 
   const fetchDevicesForInterface = async (iface) => {
     try {
-      const res = await fetch(`${backendUrl}/devices/${iface}`);
-      if (!res.ok) throw new Error('Failed to fetch devices for interface');
-      const data = await res.json();
+      const data = await ApiService.getDevicesForInterface(iface);
       setDevicesByInterface((prev) => ({ ...prev, [iface]: Array.isArray(data.devices) ? data.devices : [] }));
     } catch (e) {
       notifyError('Error fetching interface devices: ' + e.message);
@@ -445,23 +427,14 @@ const Network = () => {
               ...base,
               byte_timeout: payload.byte_timeout,
             };
-      let res;
+      let data;
       if (modal.mode === 'add') {
-        res = await fetch(`${backendUrl}/devices`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(finalPayload)
-        });
+        data = await ApiService.createDevice(finalPayload);
       } else {
         const originalName = modal.originalName || payload.device_name;
-        res = await fetch(`${backendUrl}/devices/${encodeURIComponent(originalName)}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(finalPayload)
-        });
+        data = await ApiService.updateDevice(originalName, finalPayload);
       }
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.error || data.success === false) {
+      if (data.error || data.success === false) {
         throw new Error(data.error || 'Request failed');
       }
       notifySuccess(modal.mode === 'add' ? 'Device added' : 'Device updated');
@@ -476,9 +449,8 @@ const Network = () => {
     try {
       const ok = window.confirm(`Delete device "${device.device_name}"?`);
       if (!ok) return;
-      const res = await fetch(`${backendUrl}/devices/${encodeURIComponent(device.device_name)}`, { method: 'DELETE' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.error || data.success === false) {
+      const data = await ApiService.deleteDevice(device.device_name);
+      if (data.error || data.success === false) {
         throw new Error(data.error || 'Failed to delete');
       }
       notifySuccess('Device deleted');

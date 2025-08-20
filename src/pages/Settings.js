@@ -1,123 +1,377 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Settings as SettingsIcon,
   Save,
-  Wifi,
-  Info,
+  Globe,
+  Clock,
+  User,
+  Lock,
+  Loader2
 } from 'lucide-react';
+import Toast from '../components/Toast';
+import { useAppContext } from '../contexts/AppContext';
 
 const Settings = () => {
-  const [socketUrl, setSocketUrl] = useState(process.env.REACT_APP_SOCKET_URL || 'http://localhost:5001');
+  const { appConfig, updateConfig, updateDeviceTime, isLoading } = useAppContext();
+  
+  const [config, setConfig] = useState({
+    siteName: '',
+    language: 'en',
+    timezone: 'UTC',
+    deviceTime: '',
+    theme: 'light'
+  });
+  
+  const [passwords, setPasswords] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  const handleSave = () => {
-    console.log('Saving settings:', { socketUrl });
-    alert('Settings saved successfully!');
+  // Language options
+  const languages = [
+    { value: 'en', label: 'English' },
+    { value: 'es', label: 'Español' },
+    { value: 'fr', label: 'Français' },
+    { value: 'de', label: 'Deutsch' },
+    { value: 'it', label: 'Italiano' },
+    { value: 'pt', label: 'Português' }
+  ];
+
+  // Timezone options
+  const timezones = [
+    { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
+    { value: 'America/New_York', label: 'Eastern Time (ET)' },
+    { value: 'America/Chicago', label: 'Central Time (CT)' },
+    { value: 'America/Denver', label: 'Mountain Time (MT)' },
+    { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+    { value: 'Europe/London', label: 'London (GMT)' },
+    { value: 'Europe/Paris', label: 'Paris (CET)' },
+    { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+    { value: 'Asia/Shanghai', label: 'Shanghai (CST)' },
+    { value: 'Australia/Sydney', label: 'Sydney (AEDT)' }
+  ];
+
+  // Sync local config with app context
+  useEffect(() => {
+    setConfig({
+      siteName: appConfig.siteName || '',
+      language: appConfig.language || 'en',
+      timezone: appConfig.timezone || 'UTC',
+      deviceTime: appConfig.deviceTime || '',
+      theme: appConfig.theme || 'light'
+    });
+  }, [appConfig]);
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
   };
 
+  const hideToast = () => {
+    setToast(null);
+  };
+
+  const handleConfigChange = (field, value) => {
+    setConfig(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePasswordChange = (field, value) => {
+    setPasswords(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveConfig = async () => {
+    try {
+      setSaving(true);
+      await updateConfig(config);
+      showToast('✨ Configuration saved successfully! Check the header for real-time updates.', 'success');
+    } catch (error) {
+      console.error('Error saving config:', error);
+      showToast('Failed to save configuration', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSetDeviceTime = async () => {
+    if (!config.deviceTime) {
+      showToast('Please select a device time', 'error');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const response = await updateDeviceTime(config.deviceTime, config.timezone);
+      
+      if (response.warning) {
+        showToast(response.message + ' - ' + response.warning, 'warning');
+      } else {
+        showToast('✨ Device time and timezone saved successfully! Changes reflected in header.', 'success');
+      }
+    } catch (error) {
+      console.error('Error setting device time:', error);
+      showToast('Failed to update device time', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      showToast('New passwords do not match', 'error');
+      return;
+    }
+
+    if (passwords.newPassword.length < 8) {
+      showToast('Password must be at least 8 characters long', 'error');
+      return;
+    }
+
+    // Simple placeholder for now
+    showToast('Password change functionality will be implemented with authentication', 'info');
+    setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0097b2] mx-auto mb-4" />
+          <p className="text-gray-600">Loading configuration...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-white p-6 space-y-6 relative overflow-hidden">
-      {/* Perfect gradient background that merges beautifully in the middle */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Main gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2]/8 via-[#198c1a]/12 to-[#0097b2]/8"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0097b2]/6 via-[#198c1a]/10 to-[#0097b2]/6"></div>
-        
-        {/* Subtle decorative elements */}
-        <div className="absolute top-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-[#0097b2]/5 via-[#198c1a]/8 to-[#0097b2]/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/3 left-1/3 w-72 h-72 bg-gradient-to-tl from-[#198c1a]/6 via-[#0097b2]/4 to-[#198c1a]/6 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
-
-      <div className="relative z-10 space-y-6">
-      {/* Header */}
-      <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-xl shadow-[#198c1a]/5 border border-[#198c1a]/15 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Settings</h2>
-            <p className="text-sm text-gray-500">
-              Configure socket connection and system preferences
-            </p>
-          </div>
-          <button
-            onClick={handleSave}
-            className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md hover:bg-blue-700"
-          >
-            <Save size={16} />
-            <span>Save</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Socket Configuration */}
-      <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-xl shadow-[#198c1a]/5 border border-[#198c1a]/15 p-6">
-        <div className="flex items-center space-x-3 mb-6">
-          <Wifi className="text-blue-500" size={20} />
-          <h3 className="text-lg font-semibold text-gray-900">Socket Configuration</h3>
-        </div>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Socket Server URL
-            </label>
-            <input
-              type="url"
-              value={socketUrl}
-              onChange={(e) => setSocketUrl(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="http://localhost:5001"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              The URL of your Flask-SocketIO server (from .env: {process.env.REACT_APP_SOCKET_URL || 'Not set'})
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Environment Info */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <Info className="text-gray-500" size={20} />
-          <h3 className="text-lg font-semibold text-gray-900">Environment Configuration</h3>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex justify-between items-center py-2 border-b border-gray-200">
-            <span className="text-sm text-gray-600">REACT_APP_SOCKET_URL:</span>
-            <span className="text-sm font-mono text-gray-900">
-              {process.env.REACT_APP_SOCKET_URL || 'Not set'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center py-2">
-            <span className="text-sm text-gray-600">REACT_APP_API_URL:</span>
-            <span className="text-sm font-mono text-gray-900">
-              {process.env.REACT_APP_API_URL || 'Not set'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Info Message */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <Info className="text-blue-400" size={24} />
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">
-              Configuration Information
-            </h3>
-            <div className="mt-2 text-sm text-blue-700">
-              <p>
-                Configure the socket server URL to connect to your Flask backend. 
-                The URL is loaded from the .env file. You can modify the .env file 
-                to change the default connection URL.
-              </p>
+    <>
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl shadow-[#198c1a]/5 border border-[#198c1a]/15 p-6 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2]/3 via-[#198c1a]/5 to-[#0097b2]/3"></div>
+          <div className="flex items-center space-x-3 relative z-10">
+            <div className="p-3 bg-gradient-to-br from-[#0097b2] to-[#198c1a] rounded-xl shadow-lg">
+              <SettingsIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-[#0097b2] to-[#198c1a] bg-clip-text text-transparent">Settings</h1>
+              <p className="text-gray-600">Configure your application preferences</p>
             </div>
           </div>
         </div>
+
+        {/* General Settings */}
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl shadow-[#198c1a]/5 border border-[#198c1a]/15 p-6 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2]/2 via-[#198c1a]/3 to-[#0097b2]/2"></div>
+          <div className="flex items-center space-x-3 mb-6 relative z-10">
+            <div className="p-2 bg-gradient-to-br from-[#198c1a] to-[#0097b2] rounded-lg shadow-lg">
+              <Globe className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-xl font-semibold bg-gradient-to-r from-[#0097b2] to-[#198c1a] bg-clip-text text-transparent">General Settings</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+            {/* Site Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Site Name
+              </label>
+              <input
+                type="text"
+                value={config.siteName}
+                onChange={(e) => handleConfigChange('siteName', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter site name"
+              />
+            </div>
+
+            {/* Language */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Language
+              </label>
+              <select
+                value={config.language}
+                onChange={(e) => handleConfigChange('language', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {languages.map(lang => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Timezone */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Timezone
+              </label>
+              <select
+                value={config.timezone}
+                onChange={(e) => handleConfigChange('timezone', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {timezones.map(tz => (
+                  <option key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Theme */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Theme
+              </label>
+              <select
+                value={config.theme}
+                onChange={(e) => handleConfigChange('theme', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="auto">Auto</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end relative z-10">
+            <button
+              onClick={handleSaveConfig}
+              disabled={saving}
+              className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white rounded-lg hover:from-[#0097b2]/90 hover:to-[#198c1a]/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span>{saving ? 'Saving...' : 'Save Settings'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Device Time Settings */}
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl shadow-[#198c1a]/5 border border-[#198c1a]/15 p-6 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2]/2 via-[#198c1a]/3 to-[#0097b2]/2"></div>
+          <div className="flex items-center space-x-3 mb-6 relative z-10">
+            <div className="p-2 bg-gradient-to-br from-[#0097b2] to-[#198c1a] rounded-lg shadow-lg">
+              <Clock className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-xl font-semibold bg-gradient-to-r from-[#0097b2] to-[#198c1a] bg-clip-text text-transparent">Device Time</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Set Device Time
+              </label>
+              <input
+                type="datetime-local"
+                value={config.deviceTime}
+                onChange={(e) => handleConfigChange('deviceTime', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2]"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Set the device time and timezone for configuration
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end relative z-10">
+            <button
+              onClick={handleSetDeviceTime}
+              disabled={saving || !config.deviceTime}
+              className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white rounded-lg hover:from-[#0097b2]/90 hover:to-[#198c1a]/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Clock className="w-4 h-4" />
+              )}
+              <span>{saving ? 'Saving...' : 'Save Device Time'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Password Settings */}
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl shadow-[#198c1a]/5 border border-[#198c1a]/15 p-6 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2]/2 via-[#198c1a]/3 to-[#0097b2]/2"></div>
+          <div className="flex items-center space-x-3 mb-6 relative z-10">
+            <div className="p-2 bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg">
+              <Lock className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-xl font-semibold bg-gradient-to-r from-[#0097b2] to-[#198c1a] bg-clip-text text-transparent">Password Settings</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Current Password
+              </label>
+              <input
+                type="password"
+                value={passwords.currentPassword}
+                onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="Enter current password"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New Password
+              </label>
+              <input
+                type="password"
+                value={passwords.newPassword}
+                onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="Enter new password"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm New Password
+              </label>
+              <input
+                type="password"
+                value={passwords.confirmPassword}
+                onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="Confirm new password"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end relative z-10">
+            <button
+              onClick={handleChangePassword}
+              disabled={!passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword}
+              className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
+            >
+              <Lock className="w-4 h-4" />
+              <span>Change Password</span>
+            </button>
+          </div>
+        </div>
       </div>
-      </div>
-    </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={hideToast}
+        />
+      )}
+    </>
   );
 };
 

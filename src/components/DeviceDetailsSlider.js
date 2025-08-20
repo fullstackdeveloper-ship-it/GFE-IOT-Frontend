@@ -3,6 +3,7 @@ import { X, Database, Save, Search, Edit3 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAppSelector } from '../hooks/redux';
 import socketService from '../services/socketService';
+import ApiService from '../services/apiService';
 
 const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   const [blueprint, setBlueprint] = useState(null);
@@ -17,7 +18,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   const [lastUpdateTime, setLastUpdateTime] = useState(null);
   const deviceKey = device?.device_name || null;
 
-  const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
 
   // Subscribe to per-device room on open; leave on close/unmount
   useEffect(() => {
@@ -122,13 +123,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
     
     try {
       setLoading(true);
-      const response = await fetch(`${backendUrl}/devices/blueprint/${device.reference}`);
-      
-      if (!response.ok) {
-        throw new Error('Blueprint not found');
-      }
-      
-      const data = await response.json();
+      const data = await ApiService.getDeviceBlueprint(device.reference);
       
       setBlueprint(data);
       setRegisters(data.registers || []);
