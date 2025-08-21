@@ -70,7 +70,7 @@ function centerOf(name) {
   };
 }
 
-// Curved path FROM a source center TO the junction, with slight offset so curves don’t overlap
+// Curved path FROM a source center TO the junction, with slight offset so curves don't overlap
 function pathToJunction(from, offsetY = 0) {
   const s = centerOf(from);
   const cx = CENTER.x;
@@ -105,7 +105,7 @@ function ArrowStream({ d, kW }) {
         stroke="#60a5fa" // light blue base
         strokeWidth={thickness}
         strokeLinecap="round"
-        opacity="0.25"
+        opacity="0.8"
       />
 
       {/* Glow trail (blurred stroke behind arrow) */}
@@ -115,10 +115,7 @@ function ArrowStream({ d, kW }) {
         stroke="#3b82f6" // darker blue
         strokeWidth={thickness + 2}
         strokeLinecap="round"
-        opacity="0.15"
-        style={{
-          filter: "url(#glow)"
-        }}
+        opacity="0.3"
       />
 
       {/* Single arrow head */}
@@ -140,7 +137,7 @@ function ArrowStream({ d, kW }) {
       <polygon
         points="-14,-8 0,0 -14,8"
         fill="#60a5fa"
-        opacity="0.4"
+        opacity="0.6"
       >
         <animateMotion
           dur={`${speed}s`}
@@ -190,6 +187,7 @@ function NodeDetails({ name, node }) {
         y2={POS[name].y - 10}
         stroke="#d1d5db"
         strokeWidth="2"
+        opacity="0.9"
       />
 
       {/* Main KW value (big, centered on top) */}
@@ -201,6 +199,7 @@ function NodeDetails({ name, node }) {
         fontSize="18"
         fontWeight="700"
         fill="#111827"
+        opacity="1"
       >
         {mainKW}
       </text>
@@ -217,6 +216,7 @@ function NodeDetails({ name, node }) {
             fontSize="12"
             fontWeight="600"
             fill="#111827"
+            opacity="0.9"
           >
             {e.value}
           </text>
@@ -229,6 +229,7 @@ function NodeDetails({ name, node }) {
             fontFamily="Inter, sans-serif"
             fontSize="12"
             fill="#6b7280"
+            opacity="0.8"
           >
             {e.label}
           </text>
@@ -239,10 +240,10 @@ function NodeDetails({ name, node }) {
 }
 
 /** Painted-on-floor label with fake perspective */
-function FloorText({ x, y, text, size = 16, skewX = -22, scaleY = 0.68, rotate = 0, opacity = 0.6, letterSpacing = 1 }) {
+function FloorText({ x, y, text, size = 16, skewX = -22, scaleY = 0.68, rotate = 0, opacity = 0.8, letterSpacing = 1 }) {
   return (
-    <g transform={`translate(${x} ${y}) rotate(${rotate}) skewX(${skewX}) scale(1 ${scaleY})`} opacity={opacity} filter="url(#floorShadow)">
-      {/* thin white highlight underneath gives “printed” feel */}
+    <g transform={`translate(${x} ${y}) rotate(${rotate}) skewX(${skewX}) scale(1 ${scaleY})`} opacity={opacity}>
+      {/* thin white highlight underneath gives "printed" feel */}
       <text
         x={0}
         y={0}
@@ -251,9 +252,9 @@ function FloorText({ x, y, text, size = 16, skewX = -22, scaleY = 0.68, rotate =
         fontWeight="700"
         fontSize={size}
         fill="black"
-        fillOpacity="0.18"
+        fillOpacity="0.3"
         letterSpacing={letterSpacing}
-        style={{ paintOrder: "stroke", stroke: "#ffffff", strokeWidth: 0.3, strokeOpacity: 0.18 }}
+        style={{ paintOrder: "stroke", stroke: "#ffffff", strokeWidth: 0.3, strokeOpacity: 0.3 }}
       >
         {text}
       </text>
@@ -268,6 +269,7 @@ function FloorText({ x, y, text, size = 16, skewX = -22, scaleY = 0.68, rotate =
         fontSize={size}
         fill="black"
         letterSpacing={letterSpacing}
+        opacity="0.9"
       >
         {text}
       </text>
@@ -278,7 +280,7 @@ function FloorText({ x, y, text, size = 16, skewX = -22, scaleY = 0.68, rotate =
 /** Numeric readout painted on floor (value + small label) */
 function FloorValue({ x, y, value, label, rotate = 0, skewX = -22, scaleY = 0.68 }) {
   return (
-    <g transform={`translate(${x} ${y}) rotate(${rotate}) skewX(${skewX}) scale(1 ${scaleY})`} opacity={0.7} filter="url(#floorShadow)">
+    <g transform={`translate(${x} ${y}) rotate(${rotate}) skewX(${skewX}) scale(1 ${scaleY})`} opacity={0.9}>
       <text
         x={0}
         y={0}
@@ -286,7 +288,8 @@ function FloorValue({ x, y, value, label, rotate = 0, skewX = -22, scaleY = 0.68
         fontFamily="Inter, ui-sans-serif, system-ui"
         fontWeight="800"
         fontSize="20"
-        fill="url(#floorInk)"
+        fill="#1f2937"
+        opacity="0.9"
       >
         {value}
       </text>
@@ -298,7 +301,7 @@ function FloorValue({ x, y, value, label, rotate = 0, skewX = -22, scaleY = 0.68
         fontWeight="600"
         fontSize="12"
         fill="#6b7280"
-        fillOpacity="0.8"
+        fillOpacity="0.9"
       >
         {label}
       </text>
@@ -386,23 +389,22 @@ export default function FlowKPI() {
     <g transform="translate(0,80)">
       {/* Grid (optional) */}
       <defs>
-  {/* soft shadow like ink absorbed into floor */}
-  <filter id="floorShadow" x="-30%" y="-30%" width="160%" height="160%">
-    <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="blur"/>
-    <feOffset in="blur" dx="0.5" dy="1" result="off"/>
+  {/* simple shadow without blur */}
+  <filter id="floorShadow" x="-10%" y="-10%" width="120%" height="120%">
+    <feOffset in="SourceAlpha" dx="1" dy="1" result="off"/>
+    <feFlood floodColor="#000000" floodOpacity="0.2"/>
+    <feComposite in2="off" operator="in"/>
     <feMerge>
-      <feMergeNode in="off"/>
+      <feMergeNode/>
       <feMergeNode in="SourceGraphic"/>
     </feMerge>
   </filter>
 
-  {/* very light bevel/ink shine */}
+  {/* simple gradient without animation */}
   <linearGradient id="floorInk" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%"  stopColor="#1f2937" stopOpacity="0.55"/>
-    <stop offset="60%" stopColor="#0f172a" stopOpacity="0.65"/>
-    <stop offset="100%" stopColor="#111827" stopOpacity="0.55"/>
-    <animate attributeName="x1" values="0;0.2;0" dur="10s" repeatCount="indefinite"/>
-    <animate attributeName="x2" values="1;0.8;1" dur="10s" repeatCount="indefinite"/>
+    <stop offset="0%"  stopColor="#1f2937" stopOpacity="0.8"/>
+    <stop offset="60%" stopColor="#0f172a" stopOpacity="0.9"/>
+    <stop offset="100%" stopColor="#111827" stopOpacity="0.8"/>
   </linearGradient>
 </defs>
 
@@ -465,7 +467,7 @@ export default function FlowKPI() {
         width={SIZE.w + 80}
         height={SIZE.h + 80}
         preserveAspectRatio="xMidYMid meet"
-        filter="url(#imageGlow)"
+        opacity="1"
       />
       <image
         href="/kpi-images/updated/load.png"
@@ -474,7 +476,7 @@ export default function FlowKPI() {
         width={SIZE.w + 35}
         height={SIZE.h + 80}
         preserveAspectRatio="xMidYMid meet"
-        filter="url(#imageGlow)"
+        opacity="1"
       />
       <image
         href="/kpi-images/updated/solar.png"
@@ -483,7 +485,7 @@ export default function FlowKPI() {
         width={SIZE.w + 80}
         height={SIZE.h + 80}
         preserveAspectRatio="xMidYMid meet"
-        filter="url(#imageGlow)"
+        opacity="1"
       />
       <image
         href="/kpi-images/updated/grid.png"
@@ -492,7 +494,7 @@ export default function FlowKPI() {
         width={SIZE.w + 80}
         height={SIZE.h + 80}
         preserveAspectRatio="xMidYMid meet"
-        filter="url(#imageGlow)"
+        opacity="1"
       />
     </g>
   </svg>
