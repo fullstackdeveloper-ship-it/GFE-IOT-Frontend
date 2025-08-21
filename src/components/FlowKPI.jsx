@@ -238,6 +238,74 @@ function NodeDetails({ name, node }) {
   );
 }
 
+/** Painted-on-floor label with fake perspective */
+function FloorText({ x, y, text, size = 16, skewX = -22, scaleY = 0.68, rotate = 0, opacity = 0.6, letterSpacing = 1 }) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rotate}) skewX(${skewX}) scale(1 ${scaleY})`} opacity={opacity} filter="url(#floorShadow)">
+      {/* thin white highlight underneath gives “printed” feel */}
+      <text
+        x={0}
+        y={0}
+        textAnchor="middle"
+        fontFamily="ui-sans-serif"
+        fontWeight="700"
+        fontSize={size}
+        fill="black"
+        fillOpacity="0.18"
+        letterSpacing={letterSpacing}
+        style={{ paintOrder: "stroke", stroke: "#ffffff", strokeWidth: 0.3, strokeOpacity: 0.18 }}
+      >
+        {text}
+      </text>
+
+      {/* main ink */}
+      <text
+        x={0}
+        y={0}
+        textAnchor="middle"
+        fontFamily="ui-sans-serif"
+        fontWeight="700"
+        fontSize={size}
+        fill="black"
+        letterSpacing={letterSpacing}
+      >
+        {text}
+      </text>
+    </g>
+  );
+}
+
+/** Numeric readout painted on floor (value + small label) */
+function FloorValue({ x, y, value, label, rotate = 0, skewX = -22, scaleY = 0.68 }) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rotate}) skewX(${skewX}) scale(1 ${scaleY})`} opacity={0.7} filter="url(#floorShadow)">
+      <text
+        x={0}
+        y={0}
+        textAnchor="middle"
+        fontFamily="Inter, ui-sans-serif, system-ui"
+        fontWeight="800"
+        fontSize="20"
+        fill="url(#floorInk)"
+      >
+        {value}
+      </text>
+      <text
+        x={0}
+        y={14}
+        textAnchor="middle"
+        fontFamily="Inter, ui-sans-serif, system-ui"
+        fontWeight="600"
+        fontSize="12"
+        fill="#6b7280"
+        fillOpacity="0.8"
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
 
 
 /** ---------- Component ---------- */
@@ -318,10 +386,61 @@ export default function FlowKPI() {
     <g transform="translate(0,80)">
       {/* Grid (optional) */}
       <defs>
-        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e2e8f0" strokeWidth="0.5" opacity="0.12" />
-        </pattern>
-      </defs>
+  {/* soft shadow like ink absorbed into floor */}
+  <filter id="floorShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="blur"/>
+    <feOffset in="blur" dx="0.5" dy="1" result="off"/>
+    <feMerge>
+      <feMergeNode in="off"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+
+  {/* very light bevel/ink shine */}
+  <linearGradient id="floorInk" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"  stopColor="#1f2937" stopOpacity="0.55"/>
+    <stop offset="60%" stopColor="#0f172a" stopOpacity="0.65"/>
+    <stop offset="100%" stopColor="#111827" stopOpacity="0.55"/>
+    <animate attributeName="x1" values="0;0.2;0" dur="10s" repeatCount="indefinite"/>
+    <animate attributeName="x2" values="1;0.8;1" dur="10s" repeatCount="indefinite"/>
+  </linearGradient>
+</defs>
+
+      {/* --- floor labels (static names) --- */}
+<FloorText
+  x={550}
+  y={170}
+  text="Load"
+  size={22}
+  rotate={-8}
+/>
+
+<FloorText
+  x={73}
+  y={450}
+  text="Solar"
+  size={22}
+  rotate={0}
+/>
+
+<FloorText
+  x={580}
+  y={490}
+  text="Grid"
+  size={22}
+  rotate={0}
+/>
+
+<FloorText
+  x={80}
+  y={160}
+  text="Genset"
+  size={22}
+  rotate={0}
+/>
+
+
+
       <rect x="0" y="0" width="720" height="560" fill="url(#grid)" />
 
       {/* --- rest of your flows, badges, and icons go here --- */}
