@@ -76,6 +76,30 @@ class ApiService {
     return this.request('/devices');
   }
 
+  static async getDevicesForInterface(interfaceName) {
+    return this.request(`/devices/${interfaceName}`);
+  }
+
+  static async createDevice(deviceData) {
+    return this.request('/devices', {
+      method: 'POST',
+      body: JSON.stringify(deviceData),
+    });
+  }
+
+  static async updateDevice(originalName, deviceData) {
+    return this.request(`/devices/${originalName}`, {
+      method: 'PUT',
+      body: JSON.stringify(deviceData),
+    });
+  }
+
+  static async deleteDevice(deviceName) {
+    return this.request(`/devices/${deviceName}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Network API
   static async getNetworkInterfaces(only = null) {
     const endpoint = only ? `/net/ifaces?only=${only.join(',')}` : '/net/ifaces';
@@ -89,6 +113,11 @@ class ApiService {
     });
   }
 
+  static async getConnectivityStatus(interfaces) {
+    const endpoint = interfaces ? `/net/connectivity?interfaces=${interfaces.join(',')}` : '/net/connectivity';
+    return this.request(endpoint);
+  }
+
   // Serial API
   static async getSerialPorts() {
     return this.request('/serial/ports');
@@ -98,6 +127,26 @@ class ApiService {
     return this.request(`/serial/ports/${portId}`, {
       method: 'PUT',
       body: JSON.stringify(config),
+    });
+  }
+
+  // Device Connectivity Testing API
+  static async testDeviceConnectivity(testConfig) {
+    return this.request('/connectivity/test-connectivity', {
+      method: 'POST',
+      body: JSON.stringify(testConfig),
+    });
+  }
+
+  // Device Blueprint API
+  static async getDeviceBlueprint(reference) {
+    return this.request(`/devices/blueprint/${reference}`);
+  }
+
+  static async updateDeviceBlueprint(reference, blueprintData) {
+    return this.request(`/devices/blueprint/${reference}`, {
+      method: 'PUT',
+      body: JSON.stringify(blueprintData),
     });
   }
 }

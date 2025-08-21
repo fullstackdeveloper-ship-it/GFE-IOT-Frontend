@@ -181,6 +181,7 @@ const Network = () => {
   // Connectivity state
   const [connectivityStatus, setConnectivityStatus] = useState({});
   const [isLoadingConnectivity, setIsLoadingConnectivity] = useState(false);
+  const [deviceTestStatus, setDeviceTestStatus] = useState({});
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -311,6 +312,103 @@ const Network = () => {
   const refreshConnectivity = async () => {
     await fetchConnectivityStatus();
     notifySuccess('Connectivity status refreshed');
+  };
+
+  const testDeviceConnectivity = async (ifaceKey, device) => {
+    const deviceKey = `${ifaceKey}-${device.device_name}`;
+    setDeviceTestStatus(prev => ({ ...prev, [deviceKey]: 'testing' }));
+    
+    try {
+      let testResult;
+      if (device.protocol === 'modbus_tcp') {
+        // Test TCP connectivity
+        testResult = await ApiService.testDeviceConnectivity({
+          type: 'tcp',
+          ip: device.device_ip,
+          port: device.tcp_port,
+          timeout: 5000
+        });
+      } else {
+        // Test serial connectivity
+        testResult = await ApiService.testDeviceConnectivity({
+          type: 'serial',
+          interface: ifaceKey,
+          device_id: device.device_id,
+          timeout: 5000
+        });
+      }
+      
+      if (testResult.success) {
+        setDeviceTestStatus(prev => ({ ...prev, [deviceKey]: 'connected' }));
+        
+        // Show detailed success message with ping results in toaster only
+        let successMessage = `Device ${device.device_name} is connected!`;
+        if (testResult.ping) {
+          successMessage += ` Ping: ${testResult.ping.avgRtt}ms, Loss: ${testResult.ping.packetLoss}%`;
+        }
+        if (testResult.port && testResult.port.success) {
+          successMessage += ` Port ${testResult.port.port || device.tcp_port} is open.`;
+        }
+        
+        notifySuccess(successMessage);
+        
+        // Store simple status for indicator only
+        setDeviceTestStatus(prev => ({ 
+          ...prev, 
+          [deviceKey]: 'connected'
+        }));
+      } else {
+        setDeviceTestStatus(prev => ({ ...prev, [deviceKey]: 'disconnected' }));
+        
+        // Show detailed error message with user-friendly text in toaster only
+        let errorMessage = `Device ${device.device_name} connection failed`;
+        if (testResult.error) {
+          errorMessage += `: ${testResult.error}`;
+        }
+        
+        // Show error notification with details
+        notifyError(errorMessage);
+        
+        // Store simple status for indicator only
+        setDeviceTestStatus(prev => ({ 
+          ...prev, 
+          [deviceKey]: 'disconnected'
+        }));
+      }
+    } catch (error) {
+      setDeviceTestStatus(prev => ({ ...prev, [deviceKey]: 'error' }));
+      
+      // Create user-friendly error message
+      let errorMessage = 'Connection test failed';
+      if (error.message) {
+        if (error.message.includes('fetch')) {
+          errorMessage = 'Network error - server may be offline';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out - server may be slow';
+        } else if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Cannot connect to server - check network connection';
+        } else {
+          errorMessage = `Connection test failed: ${error.message}`;
+        }
+      }
+      
+      notifyError(errorMessage);
+      
+      // Store simple status for indicator only
+      setDeviceTestStatus(prev => ({ 
+        ...prev, 
+        [deviceKey]: 'error'
+      }));
+    }
+    
+    // Clear status after 10 seconds to allow users to see the details
+    setTimeout(() => {
+      setDeviceTestStatus(prev => {
+        const newStatus = { ...prev };
+        delete newStatus[deviceKey];
+        return newStatus;
+      });
+    }, 10000);
   };
 
   const fetchDevicesForInterface = async (iface) => {
@@ -688,7 +786,7 @@ const Network = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white relative overflow-hidden">
+    <div className="min-h-screen bg-white relative overflow-x-hidden">
       {/* Perfect gradient background that merges beautifully in the middle */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Main gradient overlay */}
@@ -729,7 +827,7 @@ const Network = () => {
           
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-[#198c1a]/20 shadow-lg">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-[#198c1a]/20 shadow-lg hover:shadow-xl transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-gray-600 text-sm">Total Devices</div>
@@ -740,7 +838,7 @@ const Network = () => {
                 <Server className="w-8 h-8 text-[#198c1a]/60" />
               </div>
             </div>
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-[#0097b2]/20 shadow-lg">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-[#0097b2]/20 shadow-lg hover:shadow-xl transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-gray-600 text-sm">Active Interfaces</div>
@@ -749,7 +847,7 @@ const Network = () => {
                 <Router className="w-8 h-8 text-[#0097b2]/60" />
               </div>
             </div>
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-[#198c1a]/20 shadow-lg">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-[#198c1a]/20 shadow-lg hover:shadow-xl transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-gray-600 text-sm">Connectivity</div>
@@ -776,7 +874,7 @@ const Network = () => {
       <div className="px-6 mb-8">
         <div className="bg-white/95 backdrop-blur-xl border border-[#198c1a]/15 rounded-2xl shadow-xl shadow-[#198c1a]/5 p-6 hover:shadow-2xl hover:shadow-[#198c1a]/10 transition-all duration-300">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-            {/* Advanced Search Bar */}
+            {/* Floating Search Bar */}
             <div className="flex-1 max-w-2xl">
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -786,7 +884,7 @@ const Network = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="block w-full pl-12 pr-12 py-4 border-2 border-[#198c1a]/20 rounded-xl text-sm placeholder-gray-500 focus:ring-4 focus:ring-[#198c1a]/20 focus:border-[#198c1a] bg-white/95 backdrop-blur-sm transition-all duration-300 shadow-lg hover:shadow-xl focus:shadow-[#198c1a]/10"
+                  className="block w-full pl-12 pr-12 py-4 border-2 border-[#198c1a]/20 rounded-xl text-sm placeholder-gray-500 focus:ring-4 focus:ring-[#198c1a]/20 focus:border-[#198c1a] bg-white/95 backdrop-blur-sm transition-all duration-300 shadow-lg hover:shadow-xl focus:shadow-[#198c1a]/10 transform hover:scale-[1.02] hover:-translate-y-1"
                   placeholder="🔍 Search devices by name, protocol, reference, or interface..."
                 />
                 {searchQuery && (
@@ -797,10 +895,12 @@ const Network = () => {
                     <X className="h-5 w-5" />
                   </button>
                 )}
-                {/* Search suggestions indicator */}
+                {/* Floating effect indicator */}
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#0097b2]/5 to-[#198c1a]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-        </div>
-      </div>
+                {/* Floating shadow effect */}
+                <div className="absolute -bottom-2 left-2 right-2 h-2 bg-gradient-to-r from-[#0097b2]/20 to-[#198c1a]/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-all duration-500 transform scale-x-0 group-hover:scale-x-100"></div>
+              </div>
+            </div>
 
             {/* Enhanced Controls */}
             <div className="flex items-center gap-4">
@@ -867,20 +967,42 @@ const Network = () => {
                       </div>
                     </div>
                   </div>
-          <button
-                    onClick={() => {
-                      if (ifaceKey === 'eth1' || ifaceKey === 'wlan0') {
-                        const found = networkInterfaces.find((i) => i.name === ifaceKey) || { name: ifaceKey };
-                        openNetworkModal(found);
-                      } else {
-                        const map = { serial_1: 'COM1', serial_2: 'COM2' };
-                        openSerialEdit(map[ifaceKey]);
-                      }
-                    }}
-                    className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white rounded-lg hover:from-[#007a93] hover:to-[#147015] transition-all duration-200 shadow-md hover:shadow-lg"
-                  >
-                    <Edit size={14} /> Edit
-          </button>
+          {/* Interface Actions Dropdown */}
+          <div className="relative group">
+            <button className="p-2 rounded-lg bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white hover:from-[#007a93] hover:to-[#147015] transition-all duration-200 shadow-md hover:shadow-lg">
+              <Edit size={16} />
+            </button>
+            {/* Dropdown Menu */}
+            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-2xl border border-[#198c1a]/20 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform scale-95 group-hover:scale-100 z-[9999]">
+              <div className="py-2">
+                <button
+                  onClick={() => {
+                    if (ifaceKey === 'eth1' || ifaceKey === 'wlan0') {
+                      const found = networkInterfaces.find((i) => i.name === ifaceKey) || { name: ifaceKey };
+                      openNetworkModal(found);
+                    } else {
+                      const map = { serial_1: 'COM1', serial_2: 'COM2' };
+                      openSerialEdit(map[ifaceKey]);
+                    }
+                  }}
+                  className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#0097b2]/10 hover:text-[#0097b2] transition-colors duration-200 flex items-center gap-3"
+                >
+                  <Edit size={14} />
+                  Edit Interface
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: Implement remove interface functionality
+                    console.log('Remove interface:', ifaceKey);
+                  }}
+                  className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 transition-colors duration-200 flex items-center gap-3"
+                >
+                  <Trash2 size={14} />
+                  Remove Interface
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
                 {/* Connectivity Indicators */}
@@ -912,28 +1034,83 @@ const Network = () => {
                   <div key={dev.device_name} className="group border border-white/40 rounded-lg p-4 hover:shadow-xl hover:border-[#0097b2]/50 hover:-translate-y-1 transition-all duration-300 bg-white/80 backdrop-blur-sm hover:bg-white/95 cursor-pointer">
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className="text-sm font-semibold text-gray-900 mb-1">
-                          {highlightSearchTerm(dev.device_name, searchQuery)}
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="text-sm font-semibold text-gray-900">
+                            {highlightSearchTerm(dev.device_name, searchQuery)}
+                          </div>
+                          {/* Connection Test Status Indicator */}
+                          {deviceTestStatus[`${ifaceKey}-${dev.device_name}`] && (
+                            <div className={`w-2 h-2 rounded-full animate-pulse ${
+                              deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'connected' ? 'bg-green-500' :
+                              deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'disconnected' ? 'bg-red-500' :
+                              deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'testing' ? 'bg-yellow-500' :
+                              deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'error' ? 'bg-gray-500' :
+                              'bg-gray-400'
+                            }`} title={
+                              deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'connected' ? 'Connected' :
+                              deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'disconnected' ? 'Failed' :
+                              deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'testing' ? 'Testing...' :
+                              deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'error' ? 'Error' :
+                              'Unknown'
+                            }></div>
+                          )}
                         </div>
                         <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-[#0097b2]/20 to-[#198c1a]/20 text-[#0097b2] mb-2">
                           {highlightSearchTerm(dev.protocol, searchQuery)}
                         </div>
+                        
+                        {/* Simple Connection Status Indicator */}
+                        {deviceTestStatus[`${ifaceKey}-${dev.device_name}`] && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full animate-pulse ${
+                              deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'connected' ? 'bg-green-500' :
+                              deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'disconnected' ? 'bg-red-500' :
+                              deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'testing' ? 'bg-yellow-500' :
+                              deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'error' ? 'bg-gray-500' :
+                              'bg-gray-400'
+                            }`} />
+                            <span className="text-xs text-gray-500">
+                              {deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'connected' ? 'Connected' :
+                               deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'disconnected' ? 'Failed' :
+                               deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'testing' ? 'Testing...' :
+                               deviceTestStatus[`${ifaceKey}-${dev.device_name}`] === 'error' ? 'Error' :
+                               'Unknown'
+                              }
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button 
-                          onClick={() => openEditDeviceModal(ifaceKey, dev)} 
-                          className="p-2 rounded-lg bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white hover:from-[#007a93] hover:to-[#147015] transition-all duration-200 shadow-md hover:shadow-lg"
-                          title="Edit Device"
-                        >
+                      {/* Device Actions Dropdown */}
+                      <div className="relative group/device opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button className="p-2 rounded-lg bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white hover:from-[#007a93] hover:to-[#147015] transition-all duration-200 shadow-md hover:shadow-lg">
                           <Edit size={16} />
                         </button>
-                        <button 
-                          onClick={() => deleteDevice(ifaceKey, dev)} 
-                          className="p-2 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg"
-                          title="Delete Device"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {/* Dropdown Menu */}
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-2xl border border-[#198c1a]/20 opacity-0 invisible group-hover/device:opacity-100 group-hover/device:visible transition-all duration-300 transform scale-95 group-hover/device:scale-100 z-[9999]">
+                          <div className="py-2">
+                            <button
+                              onClick={() => openEditDeviceModal(ifaceKey, dev)}
+                              className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-[#0097b2]/10 hover:text-[#0097b2] transition-colors duration-200 flex items-center gap-3"
+                            >
+                              <Edit size={14} />
+                              Edit Device
+                            </button>
+                            <button
+                              onClick={() => testDeviceConnectivity(ifaceKey, dev)}
+                              className="w-full px-4 py-3 text-left text-sm text-blue-600 hover:bg-blue-50 transition-colors duration-200 flex items-center gap-3"
+                            >
+                              <Globe2 size={14} />
+                              Test Connection
+                            </button>
+                            <button
+                              onClick={() => deleteDevice(ifaceKey, dev)}
+                              className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 transition-colors duration-200 flex items-center gap-3"
+                            >
+                              <Trash2 size={14} />
+                              Delete Device
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                     <div className="mt-3 text-xs text-gray-600 space-y-1">
@@ -1068,6 +1245,19 @@ const Network = () => {
           .animate-glow {
             animation: glow 2s ease-in-out infinite;
           }
+          
+          @keyframes float {
+            0%, 100% {
+              transform: translateY(0px);
+            }
+            50% {
+              transform: translateY(-8px);
+            }
+          }
+          
+          .animate-float {
+            animation: float 6s ease-in-out infinite;
+          }
         `}</style>
         </div>
 
@@ -1095,8 +1285,8 @@ const Network = () => {
         if (!modal.open) return null;
         const d = modal.data || {};
         return (
-          <div key={`modal-${ifaceKey}`} className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg transform transition-all duration-300 scale-100">
+          <div key={`modal-${ifaceKey}`} className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg transform transition-all duration-300 scale-100 my-8">  
               <div className="flex items-center justify-between p-6 border-b border-white/20 bg-gradient-to-r from-[#0097b2]/10 to-[#198c1a]/10 rounded-t-2xl">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-r from-[#0097b2] to-[#198c1a] rounded-lg">
@@ -1114,7 +1304,7 @@ const Network = () => {
                 <X size={20} />
               </button>
             </div>
-              <div className="p-6 space-y-6">
+              <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto modal-scrollbar">
               <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Device Name</label>
                   <input 
