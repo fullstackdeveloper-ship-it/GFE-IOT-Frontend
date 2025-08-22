@@ -4,7 +4,6 @@ import {
   Save,
   Globe,
   Clock,
-  User,
   Lock,
   Loader2
 } from 'lucide-react';

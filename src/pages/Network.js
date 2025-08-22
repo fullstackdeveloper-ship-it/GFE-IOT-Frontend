@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppSelector } from '../hooks/redux';
-import { Wifi, WifiOff, X, Edit, Plus, Trash2, Network as NetworkIcon, Router, Server, Cable, Globe, Globe2, Search, Filter, RefreshCw } from 'lucide-react';
+import { Wifi, WifiOff, X, Edit, Plus, Trash2, Network as NetworkIcon, Router, Server, Cable, Globe, Globe2, Search, Filter, RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 import ApiService from '../services/apiService';
 import 'react-toastify/dist/ReactToastify.css';
@@ -107,16 +107,16 @@ const EditPortModal = ({ isOpen, portName, values, options, onClose, onSave, onC
           <div>
             <label className="block text-sm font-medium text-gray-700">Parity</label>
             <select value={parity} onChange={(e) => onChange({ ...values, parity: e.target.value })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-              {dd.parity.map((p) => (
-                <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+              {dd.parity.map((v) => (
+                <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
               ))}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Mode</label>
             <select value={mode} onChange={(e) => onChange({ ...values, mode: e.target.value })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-              {dd.mode.map((m) => (
-                <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>
+              {dd.mode.map((v) => (
+                <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
               ))}
             </select>
           </div>
@@ -125,6 +125,108 @@ const EditPortModal = ({ isOpen, portName, values, options, onClose, onSave, onC
         <div className="flex space-x-3 pt-6">
           <button onClick={onClose} className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400">Cancel</button>
           <button onClick={onSave} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Save</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Connection Details Popup Component
+const ConnectionDetailsPopup = ({ isOpen, onClose, connectionData }) => {
+  if (!isOpen || !connectionData) return null;
+
+  const getStatusIcon = (status) => {
+    if (status === 'connected' || status === 'success' || status === 'passed') {
+      return <CheckCircle className="text-green-500" size={24} />;
+    }
+    return <XCircle className="text-red-500" size={24} />;
+  };
+
+  const getStatusText = (status) => {
+    if (status === 'connected' || status === 'success' || status === 'passed') {
+      return 'Connected Successfully';
+    }
+    return 'Connection Failed';
+  };
+
+  const getStatusColor = (status) => {
+    if (status === 'connected' || status === 'success' || status === 'passed') {
+      return 'text-green-600';
+    }
+    return 'text-red-600';
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4">
+        {/* Header with gradient */}
+        <div className="bg-gradient-to-r from-[#198c1a] to-[#0097b2] rounded-t-xl p-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white">Connection Test Result</h3>
+            <button
+              onClick={onClose}
+              className="text-white/80 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-4 space-y-4">
+          {/* Status Section */}
+          <div className="text-center">
+            {getStatusIcon(connectionData.status)}
+            <div className={`mt-2 text-lg font-semibold ${getStatusColor(connectionData.status)}`}>
+              {getStatusText(connectionData.status)}
+            </div>
+          </div>
+
+          {/* Device Info */}
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Device:</span>
+                <span className="font-medium">{connectionData.deviceName || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Protocol:</span>
+                <span className="font-medium">{connectionData.protocol || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Target:</span>
+                <span className="font-medium text-xs">{connectionData.target || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Performance */}
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Response Time:</span>
+                <span className="font-medium">{connectionData.responseTime || connectionData.durationMs || 'N/A'} ms</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Error Message (if any) */}
+          {connectionData.error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <div className="text-sm text-red-600">
+                <span className="font-medium">Error:</span> {connectionData.error}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer with gradient button */}
+        <div className="p-4 border-t border-gray-100">
+          <button
+            onClick={onClose}
+            className="w-full bg-gradient-to-r from-[#198c1a] to-[#0097b2] text-white px-4 py-2 rounded-lg hover:from-[#147015] hover:to-[#007a93] transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -186,6 +288,12 @@ const Network = () => {
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredDevices, setFilteredDevices] = useState({ eth1: [], wlan0: [], serial_1: [], serial_2: [] });
+
+  // Connection details popup state
+  const [connectionDetailsPopup, setConnectionDetailsPopup] = useState({
+    isOpen: false,
+    data: null
+  });
 
   useEffect(() => {
     fetchNetworkInterfaces();
@@ -281,12 +389,30 @@ const Network = () => {
       setIsLoadingDevices(true);
       const data = await ApiService.getDevices();
       const byIface = data.devices || {};
-      setDevicesByInterface({
+      
+      // Map backend interface names to frontend interface names
+      const interfaceMapping = {
+        '/dev/ttyS4': 'serial_1',
+        '/dev/ttyS5': 'serial_2'
+      };
+      
+      // Initialize with empty arrays
+      const mappedDevices = {
         eth1: Array.isArray(byIface.eth1) ? byIface.eth1 : [],
         wlan0: Array.isArray(byIface.wlan0) ? byIface.wlan0 : [],
-        serial_1: Array.isArray(byIface.serial_1) ? byIface.serial_1 : [],
-        serial_2: Array.isArray(byIface.serial_2) ? byIface.serial_2 : [],
+        serial_1: [],
+        serial_2: [],
+      };
+      
+      // Map serial devices from backend format to frontend format
+      Object.keys(byIface).forEach(backendInterface => {
+        if (interfaceMapping[backendInterface]) {
+          const frontendInterface = interfaceMapping[backendInterface];
+          mappedDevices[frontendInterface] = Array.isArray(byIface[backendInterface]) ? byIface[backendInterface] : [];
+        }
       });
+      
+      setDevicesByInterface(mappedDevices);
       setReferences(Array.isArray(data.references) ? data.references : []);
     } catch (e) {
       notifyError('Error fetching devices: ' + e.message);
@@ -321,36 +447,68 @@ const Network = () => {
     try {
       let testResult;
       if (device.protocol === 'modbus_tcp') {
-        // Test TCP connectivity
+        // Test TCP connectivity with NEW payload structure
         testResult = await ApiService.testDeviceConnectivity({
           type: 'tcp',
-          ip: device.device_ip,
-          port: device.tcp_port,
-          timeout: 5000
+          protocol: 'modbus_tcp',
+          name: device.device_name,
+          target: { 
+            ip: device.device_ip, 
+            port: device.tcp_port || 502 
+          },
+          timeoutMs: 5000
         });
       } else {
-        // Test serial connectivity
+        // Map frontend interface names back to backend interface names for API call
+        const interfaceMapping = {
+          'serial_1': '/dev/ttyS4',
+          'serial_2': '/dev/ttyS5'
+        };
+        const backendInterface = interfaceMapping[ifaceKey] || ifaceKey;
+        
+        // Test serial connectivity with NEW payload structure
         testResult = await ApiService.testDeviceConnectivity({
           type: 'serial',
-          interface: ifaceKey,
-          device_id: device.device_id,
-          timeout: 5000
+          protocol: 'modbus_rtu',
+          name: device.device_name,
+          target: { 
+            interface: backendInterface, 
+            deviceId: device.device_id 
+          },
+          timeoutMs: 5000
         });
       }
       
       if (testResult.success) {
         setDeviceTestStatus(prev => ({ ...prev, [deviceKey]: 'connected' }));
         
-        // Show detailed success message with ping results in toaster only
+        // Show success message with connection details
         let successMessage = `Device ${device.device_name} is connected!`;
-        if (testResult.ping) {
-          successMessage += ` Ping: ${testResult.ping.avgRtt}ms, Loss: ${testResult.ping.packetLoss}%`;
+        
+        // Add response time if available (from binary response)
+        if (testResult.responseTime) {
+          successMessage += ` (${testResult.responseTime}ms)`;
+        } else if (testResult.durationMs) {
+          successMessage += ` (${testResult.durationMs}ms)`;
         }
-        if (testResult.port && testResult.port.success) {
-          successMessage += ` Port ${testResult.port.port || device.tcp_port} is open.`;
+        
+        // Add status details if available
+        if (testResult.status) {
+          successMessage += ` - Status: ${testResult.status}`;
+        }
+        
+        // Add target info
+        if (testResult.target) {
+          successMessage += ` Target: ${testResult.target}`;
         }
         
         notifySuccess(successMessage);
+        
+        // Show detailed popup with all connection information
+        setConnectionDetailsPopup({
+          isOpen: true,
+          data: testResult
+        });
         
         // Store simple status for indicator only
         setDeviceTestStatus(prev => ({ 
@@ -362,12 +520,27 @@ const Network = () => {
         
         // Show detailed error message with user-friendly text in toaster only
         let errorMessage = `Device ${device.device_name} connection failed`;
+        
+        // Use the detailed error message from the backend if available
         if (testResult.error) {
-          errorMessage += `: ${testResult.error}`;
+          errorMessage = `Device ${device.device_name}: ${testResult.error}`;
+        } else if (testResult.details) {
+          errorMessage = `Device ${device.device_name}: ${testResult.details}`;
+        }
+        
+        // Add response time if available
+        if (testResult.responseTime) {
+          errorMessage += ` (${testResult.responseTime}ms)`;
         }
         
         // Show error notification with details
         notifyError(errorMessage);
+        
+        // Show detailed popup with all connection information (even for failures)
+        setConnectionDetailsPopup({
+          isOpen: true,
+          data: testResult
+        });
         
         // Store simple status for indicator only
         setDeviceTestStatus(prev => ({ 
@@ -413,7 +586,14 @@ const Network = () => {
 
   const fetchDevicesForInterface = async (iface) => {
     try {
-      const data = await ApiService.getDevicesForInterface(iface);
+      // Map frontend interface names to backend interface names
+      const interfaceMapping = {
+        'serial_1': '/dev/ttyS4',
+        'serial_2': '/dev/ttyS5'
+      };
+      const backendInterface = interfaceMapping[iface] || iface;
+      
+      const data = await ApiService.getDevicesForInterface(backendInterface);
       setDevicesByInterface((prev) => ({ ...prev, [iface]: Array.isArray(data.devices) ? data.devices : [] }));
     } catch (e) {
       notifyError('Error fetching interface devices: ' + e.message);
@@ -454,7 +634,14 @@ const Network = () => {
     const modal = deviceModals[iface];
     if (!modal || !modal.data) return;
     try {
-      const payload = { ...modal.data, interface: iface };
+      // Map frontend interface names to backend interface names
+      const interfaceMapping = {
+        'serial_1': '/dev/ttyS4',
+        'serial_2': '/dev/ttyS5'
+      };
+      const backendInterface = interfaceMapping[iface] || iface;
+      
+      const payload = { ...modal.data, interface: backendInterface };
 
       // Validation with empty defaults
       if (!payload.device_name || !payload.device_name.trim()) {
@@ -508,7 +695,7 @@ const Network = () => {
         device_name: payload.device_name.trim(),
         reference: payload.reference,
         protocol: payload.protocol,
-        interface: iface,
+        interface: backendInterface,
         device_id: payload.device_id,
         response_timeout: payload.response_timeout,
       };
@@ -1640,6 +1827,13 @@ const Network = () => {
           </div>
         </div>
       )}
+
+      {/* Connection Details Popup */}
+      <ConnectionDetailsPopup
+        isOpen={connectionDetailsPopup.isOpen}
+        onClose={() => setConnectionDetailsPopup({ isOpen: false, data: null })}
+        connectionData={connectionDetailsPopup.data}
+      />
     </div>
   );
 };
