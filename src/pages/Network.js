@@ -83,7 +83,7 @@ const EditPortModal = ({ isOpen, portName, values, options, onClose, onSave, onC
           <div>
             <label className="block text-sm font-medium text-gray-700">Baud Rate</label>
             <select value={baud} onChange={(e) => onChange({ ...values, baud: Number(e.target.value) })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-              {dd.baud.map((b) => (
+              {Array.isArray(dd.baud) && dd.baud.map((b) => (
                 <option key={b} value={b}>{b}</option>
               ))}
             </select>
@@ -91,7 +91,7 @@ const EditPortModal = ({ isOpen, portName, values, options, onClose, onSave, onC
           <div>
             <label className="block text-sm font-medium text-gray-700">Data Bits</label>
             <select value={dataBits} onChange={(e) => onChange({ ...values, dataBits: Number(e.target.value) })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-              {dd.dataBits.map((v) => (
+              {Array.isArray(dd.dataBits) && dd.dataBits.map((v) => (
                 <option key={v} value={v}>{v}</option>
               ))}
             </select>
@@ -99,7 +99,7 @@ const EditPortModal = ({ isOpen, portName, values, options, onClose, onSave, onC
           <div>
             <label className="block text-sm font-medium text-gray-700">Stop Bits</label>
             <select value={stopBits} onChange={(e) => onChange({ ...values, stopBits: Number(e.target.value) })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-              {dd.stopBits.map((v) => (
+              {Array.isArray(dd.stopBits) && dd.stopBits.map((v) => (
                 <option key={v} value={v}>{v}</option>
               ))}
             </select>
@@ -107,7 +107,7 @@ const EditPortModal = ({ isOpen, portName, values, options, onClose, onSave, onC
           <div>
             <label className="block text-sm font-medium text-gray-700">Parity</label>
             <select value={parity} onChange={(e) => onChange({ ...values, parity: e.target.value })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-              {dd.parity.map((v) => (
+              {Array.isArray(dd.parity) && dd.parity.map((v) => (
                 <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
               ))}
             </select>
@@ -115,7 +115,7 @@ const EditPortModal = ({ isOpen, portName, values, options, onClose, onSave, onC
           <div>
             <label className="block text-sm font-medium text-gray-700">Mode</label>
             <select value={mode} onChange={(e) => onChange({ ...values, mode: e.target.value })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-              {dd.mode.map((v) => (
+              {Array.isArray(dd.mode) && dd.mode.map((v) => (
                 <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
               ))}
             </select>
@@ -424,7 +424,7 @@ const Network = () => {
         
         // Extract all references for backward compatibility
         const allReferences = data.references.flatMap(vendor => 
-          vendor.references.map(ref => ref.reference)
+          Array.isArray(vendor.references) ? vendor.references.map(ref => ref.reference) : []
         );
         setReferences(allReferences);
       } else {
@@ -460,10 +460,10 @@ const Network = () => {
 
   // Get references for selected vendor
   const getReferencesForVendor = (vendorName) => {
-    if (!vendorName) return [];
+    if (!vendorName || !Array.isArray(fullReferencesData)) return [];
     
     const vendorData = fullReferencesData.find(v => v.vendor === vendorName);
-    return vendorData ? vendorData.references.map(ref => ref.reference) : [];
+    return vendorData && Array.isArray(vendorData.references) ? vendorData.references.map(ref => ref.reference) : [];
   };
 
   // Handle vendor selection
@@ -673,11 +673,11 @@ const Network = () => {
 
   const openEditDeviceModal = (iface, device) => {
     // Find the vendor for this device's reference
-    const vendorForReference = fullReferencesData.find(vendor => 
-      vendor.references.some(ref => ref.reference === device.reference)
-    );
+    const vendorForReference = Array.isArray(fullReferencesData) ? fullReferencesData.find(vendor => 
+      Array.isArray(vendor.references) && vendor.references.some(ref => ref.reference === device.reference)
+    ) : null;
     
-    if (vendorForReference) {
+    if (vendorForReference && Array.isArray(vendorForReference.references)) {
       setSelectedVendor(vendorForReference.vendor);
       setVendorReferences(vendorForReference.references.map(ref => ref.reference));
     } else {
@@ -1332,17 +1332,6 @@ const Network = () => {
                         {/* Vendor and Reference Info */}
                         <div className="text-xs text-gray-600 mb-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-gray-500">Vendor:</span>
-                            <span className="font-medium">
-                              {(() => {
-                                const vendorForReference = fullReferencesData.find(vendor => 
-                                  vendor.references.some(ref => ref.reference === dev.reference)
-                                );
-                                return vendorForReference ? vendorForReference.vendor : 'Unknown';
-                              })()}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
                             <span className="text-gray-500">Reference:</span>
                             <span className="font-medium">{dev.reference || '—'}</span>
                           </div>
@@ -1614,7 +1603,7 @@ const Network = () => {
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200"
                 >
                   <option value="">Select vendor…</option>
-                  {vendors.map((vendor) => (
+                  {Array.isArray(vendors) && vendors.map((vendor) => (
                     <option key={vendor} value={vendor}>{vendor}</option>
                   ))}
                 </select>
@@ -1636,7 +1625,7 @@ const Network = () => {
                       <option value="" disabled>
                         {selectedVendor ? 'Select reference…' : 'Select vendor first…'}
                       </option>
-                      {vendorReferences.map((r) => (
+                      {Array.isArray(vendorReferences) && vendorReferences.map((r) => (
                         <option key={r} value={r}>{r}</option>
                       ))}
                 </select>
