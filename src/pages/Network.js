@@ -247,6 +247,10 @@ const Network = () => {
   // react-toastify handles notifications
   const [devicesByInterface, setDevicesByInterface] = useState({ eth1: [], wlan0: [], serial_1: [], serial_2: [] });
   const [references, setReferences] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [selectedVendor, setSelectedVendor] = useState('');
+  const [vendorReferences, setVendorReferences] = useState([]);
+  const [fullReferencesData, setFullReferencesData] = useState([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [deviceModals, setDeviceModals] = useState({
     eth1: { open: false, mode: 'add', data: null, originalName: null },
@@ -290,10 +294,8 @@ const Network = () => {
   const [filteredDevices, setFilteredDevices] = useState({ eth1: [], wlan0: [], serial_1: [], serial_2: [] });
 
   // Connection details popup state
-  const [connectionDetailsPopup, setConnectionDetailsPopup] = useState({
-    isOpen: false,
-    data: null
-  });
+  const [connectionDetailsPopup, setConnectionDetailsPopup] = useState({ isOpen: false, data: null });
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({ isOpen: false, device: null, iface: null });
 
   useEffect(() => {
     fetchNetworkInterfaces();
@@ -413,7 +415,23 @@ const Network = () => {
       });
       
       setDevicesByInterface(mappedDevices);
-      setReferences(Array.isArray(data.references) ? data.references : []);
+      
+      // Handle new vendor-based references structure
+      if (data.references && Array.isArray(data.references)) {
+        const vendorList = data.references.map(vendor => vendor.vendor);
+        setVendors(vendorList);
+        setFullReferencesData(data.references);
+        
+        // Extract all references for backward compatibility
+        const allReferences = data.references.flatMap(vendor => 
+          vendor.references.map(ref => ref.reference)
+        );
+        setReferences(allReferences);
+      } else {
+        setVendors([]);
+        setReferences([]);
+        setFullReferencesData([]);
+      }
     } catch (e) {
       notifyError('Error fetching devices: ' + e.message);
       setError('Error fetching devices: ' + e.message);
@@ -438,6 +456,33 @@ const Network = () => {
   const refreshConnectivity = async () => {
     await fetchConnectivityStatus();
     notifySuccess('Connectivity status refreshed');
+  };
+
+  // Get references for selected vendor
+  const getReferencesForVendor = (vendorName) => {
+    if (!vendorName) return [];
+    
+    const vendorData = fullReferencesData.find(v => v.vendor === vendorName);
+    return vendorData ? vendorData.references.map(ref => ref.reference) : [];
+  };
+
+  // Handle vendor selection
+  const handleVendorChange = (vendorName, ifaceKey) => {
+    setSelectedVendor(vendorName);
+    const vendorRefs = getReferencesForVendor(vendorName);
+    setVendorReferences(vendorRefs);
+    
+    // Clear reference when vendor changes
+    const modal = deviceModals[ifaceKey];
+    if (modal && modal.data) {
+      setDeviceModals((prev) => ({ 
+        ...prev, 
+        [ifaceKey]: { 
+          ...prev[ifaceKey], 
+          data: { ...prev[ifaceKey].data, reference: '' } 
+        } 
+      }));
+    }
   };
 
   const testDeviceConnectivity = async (ifaceKey, device) => {
@@ -603,6 +648,10 @@ const Network = () => {
 
   // Device modal helpers
   const openAddDeviceModal = (iface) => {
+    // Reset vendor selection for new device
+    setSelectedVendor('');
+    setVendorReferences([]);
+    
     // Set default protocol based on interface
     const defaultProtocol = (iface === 'eth1' || iface === 'wlan0') ? 'modbus_tcp' : 'modbus_rtu';
     
@@ -623,10 +672,27 @@ const Network = () => {
   };
 
   const openEditDeviceModal = (iface, device) => {
+    // Find the vendor for this device's reference
+    const vendorForReference = fullReferencesData.find(vendor => 
+      vendor.references.some(ref => ref.reference === device.reference)
+    );
+    
+    if (vendorForReference) {
+      setSelectedVendor(vendorForReference.vendor);
+      setVendorReferences(vendorForReference.references.map(ref => ref.reference));
+    } else {
+      setSelectedVendor('');
+      setVendorReferences([]);
+    }
+    
     setDeviceModals((prev) => ({ ...prev, [iface]: { open: true, mode: 'edit', data: { ...device }, originalName: device.device_name } }));
   };
 
   const closeDeviceModal = (iface) => {
+    // Reset vendor selection when closing modal
+    setSelectedVendor('');
+    setVendorReferences([]);
+    
     setDeviceModals((prev) => ({ ...prev, [iface]: { open: false, mode: 'add', data: null, originalName: null } }));
   };
 
@@ -646,6 +712,10 @@ const Network = () => {
       // Validation with empty defaults
       if (!payload.device_name || !payload.device_name.trim()) {
         notifyError('Device name is required');
+        return;
+      }
+      if (!selectedVendor) {
+        notifyError('Vendor is required');
         return;
       }
       if (!payload.protocol) {
@@ -972,6 +1042,19 @@ const Network = () => {
     );
   };
 
+  // Interface display name mapping
+  const getInterfaceDisplayName = (ifaceKey) => {
+    const displayNames = {
+      'eth1': 'Ethernet1',
+      'wlan0': 'WiFi',
+      'serial_1': 'Serial 1',
+      'serial_2': 'Serial 2',
+      '/dev/ttyS4': 'Serial 1',
+      '/dev/ttyS5': 'Serial 2'
+    };
+    return displayNames[ifaceKey] || ifaceKey;
+  };
+
   return (
     <div className="min-h-screen bg-white relative overflow-x-hidden">
       {/* Perfect gradient background that merges beautifully in the middle */}
@@ -1148,9 +1231,9 @@ const Network = () => {
                       <Cable className="text-[#0097b2]" size={20} />
                     )}
                     <div>
-                      <div className="font-semibold text-gray-800 text-lg">{ifaceKey}</div>
+                      <div className="font-semibold text-gray-800 text-lg">{getInterfaceDisplayName(ifaceKey)}</div>
                       <div className="text-xs text-gray-500">
-                        {ifaceKey.startsWith('eth') ? 'Ethernet Interface' : ifaceKey === 'wlan0' ? 'WiFi Interface' : 'Serial Port'}
+                        {ifaceKey === 'eth1' ? 'Ethernet Interface' : ifaceKey === 'wlan0' ? 'WiFi Interface' : 'Serial Port'}
                       </div>
                     </div>
                   </div>
@@ -1180,7 +1263,7 @@ const Network = () => {
                 <button
                   onClick={() => {
                     // TODO: Implement remove interface functionality
-                    console.log('Remove interface:', ifaceKey);
+                    console.log('Remove interface:', getInterfaceDisplayName(ifaceKey));
                   }}
                   className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 transition-colors duration-200 flex items-center gap-3"
                 >
@@ -1244,6 +1327,25 @@ const Network = () => {
                         </div>
                         <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-[#0097b2]/20 to-[#198c1a]/20 text-[#0097b2] mb-2">
                           {highlightSearchTerm(dev.protocol, searchQuery)}
+                        </div>
+                        
+                        {/* Vendor and Reference Info */}
+                        <div className="text-xs text-gray-600 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500">Vendor:</span>
+                            <span className="font-medium">
+                              {(() => {
+                                const vendorForReference = fullReferencesData.find(vendor => 
+                                  vendor.references.some(ref => ref.reference === dev.reference)
+                                );
+                                return vendorForReference ? vendorForReference.vendor : 'Unknown';
+                              })()}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500">Reference:</span>
+                            <span className="font-medium">{dev.reference || '—'}</span>
+                          </div>
                         </div>
                         
                         {/* Simple Connection Status Indicator */}
@@ -1481,7 +1583,7 @@ const Network = () => {
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900">
                     {modal.mode === 'add' ? 'Add Device' : 'Edit Device'}
-                    <div className="text-sm font-normal text-gray-600">{ifaceKey}</div>
+                    <div className="text-sm font-normal text-gray-600">{getInterfaceDisplayName(ifaceKey)}</div>
               </h3>
                 </div>
               <button
@@ -1502,16 +1604,41 @@ const Network = () => {
                     placeholder="Enter device name"
                   />
               </div>
-                <div className="grid grid-cols-2 gap-4">
+              
+              {/* Vendor Selection */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Vendor</label>
+                <select
+                  value={selectedVendor} 
+                  onChange={(e) => handleVendorChange(e.target.value, ifaceKey)} 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200"
+                >
+                  <option value="">Select vendor…</option>
+                  {vendors.map((vendor) => (
+                    <option key={vendor} value={vendor}>{vendor}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
               <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Reference</label>
                 <select
                       value={d.reference || ''} 
                       onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, reference: e.target.value } } }))} 
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200"
+                      disabled={!selectedVendor}
+                      className={`w-full border border-gray-300 rounded-lg px-4 py-3 text-sm transition-colors duration-200 ${
+                        selectedVendor 
+                          ? 'focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2]' 
+                          : 'bg-gray-100 text-gray-600 cursor-not-allowed'
+                      }`}
                     >
-                      <option value="" disabled>Select reference…</option>
-                      {(references || []).map((r) => (<option key={r} value={r}>{r}</option>))}
+                      <option value="" disabled>
+                        {selectedVendor ? 'Select reference…' : 'Select vendor first…'}
+                      </option>
+                      {vendorReferences.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
                 </select>
               </div>
               <div>
@@ -1532,7 +1659,7 @@ const Network = () => {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Interface</label>
                     <input
                       type="text"
-                    value={ifaceKey} 
+                    value={getInterfaceDisplayName(ifaceKey)} 
                     readOnly 
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm bg-gray-100 text-gray-600 cursor-not-allowed" 
                     />

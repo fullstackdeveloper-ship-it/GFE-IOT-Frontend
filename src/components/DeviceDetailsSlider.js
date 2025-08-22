@@ -18,6 +18,18 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   const [lastUpdateTime, setLastUpdateTime] = useState(null);
   const deviceKey = device?.device_name || null;
 
+  // Interface display name mapping
+  const getInterfaceDisplayName = (ifaceKey) => {
+    const displayNames = {
+      'eth1': 'Ethernet1',
+      'wlan0': 'WiFi',
+      'serial_1': 'Serial 1',
+      'serial_2': 'Serial 2',
+      '/dev/ttyS4': 'Serial 1',
+      '/dev/ttyS5': 'Serial 2'
+    };
+    return displayNames[ifaceKey] || ifaceKey;
+  };
 
 
   // Subscribe to per-device room on open; leave on close/unmount
@@ -241,7 +253,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                 <div className="flex items-center gap-4 text-white/80 text-sm">
                   <span>{device.device_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
                   <span>•</span>
-                  <span>{device.interface}</span>
+                  <span>{getInterfaceDisplayName(device.interface)}</span>
                   <span>•</span>
                   <span>ID: {device.device_id}</span>
                 </div>

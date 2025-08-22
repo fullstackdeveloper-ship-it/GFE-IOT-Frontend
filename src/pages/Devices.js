@@ -17,6 +17,19 @@ const Devices = () => {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [isSliderOpen, setIsSliderOpen] = useState(false);
 
+  // Interface display name mapping
+  const getInterfaceDisplayName = (ifaceKey) => {
+    const displayNames = {
+      'eth1': 'Ethernet1',
+      'wlan0': 'WiFi',
+      'serial_1': 'Serial 1',
+      'serial_2': 'Serial 2',
+      '/dev/ttyS4': 'Serial 1',
+      '/dev/ttyS5': 'Serial 2'
+    };
+    return displayNames[ifaceKey] || ifaceKey;
+  };
+
   useEffect(() => {
     fetchDevices();
   }, []);
@@ -267,7 +280,7 @@ const Devices = () => {
                 >
                   <option value="all">All Interfaces</option>
                   {uniqueInterfaces.map(iface => (
-                    <option key={iface} value={iface}>{iface}</option>
+                    <option key={iface} value={iface}>{getInterfaceDisplayName(iface)}</option>
                   ))}
                 </select>
               </div>
@@ -391,7 +404,7 @@ const Devices = () => {
                         <td className="px-6 py-4">
                           <div className={getInterfaceBadge(device.interface)}>
                             {getInterfaceIcon(device.interface)}
-                            <span>{device.interface}</span>
+                            <span>{getInterfaceDisplayName(device.interface)}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">

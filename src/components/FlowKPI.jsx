@@ -368,10 +368,10 @@ export default function FlowKPI() {
       <div className="flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold bg-gradient-to-r from-[#198c1a] via-[#10b981] to-[#0097b2] bg-clip-text text-transparent">
+            <h3 className="text-xl font-bold bg-gradient-to-r from-[#198c1a] via-[#10b981] to-[#0097b2] bg-clip-text text-transparent">
               Power Flow Visualization
             </h3>
-            <div className="h-0.5 w-20 bg-gradient-to-r from-[#198c1a] to-[#0097b2] rounded-full mt-1" />
+            <div className="h-1 w-20 bg-gradient-to-r from-[#198c1a] to-[#0097b2] rounded-full mt-1" />
           </div>
         </div>
       </div>

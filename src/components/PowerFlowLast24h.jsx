@@ -191,7 +191,7 @@ const PowerFlowLast24h = () => {
       {/* Header */}
       <div className="flex-shrink-0 mb-3 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold mb-1 bg-gradient-to-r from-[#0097b2] to-[#198c1a] bg-clip-text text-transparent">
+          <h3 className="text-xl font-bold mb-1 bg-gradient-to-r from-[#0097b2] to-[#198c1a] bg-clip-text text-transparent">
             Power Flow Analysis
           </h3>
           <div className="h-1 w-24 bg-gradient-to-r from-[#0097b2] to-[#198c1a] rounded-full"></div>
@@ -269,7 +269,7 @@ const PowerFlowLast24h = () => {
               dataKey="pv"
               name="Solar Generation"
               stroke="url(#pvGradient)"
-              strokeWidth={2}
+              strokeWidth={1.5}
               dot={false}
               activeDot={{ r: 4, fill: "#f59e0b", stroke: "#fff", strokeWidth: 2 }}
             />
@@ -278,7 +278,7 @@ const PowerFlowLast24h = () => {
               dataKey="load"
               name="Load Demand"
               stroke="url(#loadGradient)"
-              strokeWidth={2}
+              strokeWidth={1.5}
               dot={false}
               activeDot={{ r: 4, fill: "#3b82f6", stroke: "#fff", strokeWidth: 2 }}
             />
@@ -287,7 +287,7 @@ const PowerFlowLast24h = () => {
               dataKey="genset"
               name="Generator Output"
               stroke="url(#gensetGradient)"
-              strokeWidth={2}
+              strokeWidth={1.5}
               dot={false}
               activeDot={{ r: 4, fill: "#ef4444", stroke: "#fff", strokeWidth: 2 }}
             />
@@ -296,7 +296,7 @@ const PowerFlowLast24h = () => {
               dataKey="grid"
               name="Grid Exchange"
               stroke="url(#gridPowerGradient)"
-              strokeWidth={2}
+              strokeWidth={1.5}
               strokeDasharray="8 4"
               dot={false}
               activeDot={{ r: 4, fill: "#06b6d4", stroke: "#fff", strokeWidth: 2 }}
