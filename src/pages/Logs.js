@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAppSelector } from '../hooks/redux';
+import { useSorting } from '../hooks/useSorting';
+import SortableTableHeader from '../components/SortableTableHeader';
+import SortingIndicator from '../components/SortingIndicator';
 import {
   FileText,
   Info,
@@ -19,7 +22,10 @@ import {
   Network,
   Cable,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ApiService from '../services/apiService';
@@ -45,12 +51,42 @@ const Logs = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [logsPerPage] = useState(20);
   
+  // Sorting state using reusable hook
+  const {
+    sortConfig,
+    handleSort,
+    sortData,
+    resetSorting
+  } = useSorting('timestamp', 'desc');
+  
   // Log types
   const logTypes = [
     { value: 'communication', label: 'Communication', icon: Activity, color: 'from-blue-500 to-cyan-500' },
     { value: 'control_settings', label: 'Control Settings', icon: Settings, color: 'from-green-500 to-emerald-500' },
     { value: 'ems', label: 'EMS Logic', icon: Zap, color: 'from-orange-500 to-red-500' }
   ];
+
+  // Column labels for sorting indicator
+  const columnLabels = {
+    timestamp: 'Date & Time',
+    device: 'Device',
+    type: 'Type',
+    description: 'Description'
+  };
+
+  // Icons for sorting
+  const sortIcons = {
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown
+  };
+
+  // Handle sorting with pagination reset
+  const handleSortWithReset = (key) => {
+    handleSort(key, () => {
+      setCurrentPage(1); // Reset to first page when sorting
+    });
+  };
 
   // Fetch devices from API
   const fetchDevices = async () => {
@@ -231,7 +267,7 @@ const Logs = () => {
     const operations = [
       {
         type: 'communication',
-        description: `TCP connection to ${device.device_name} at ${device.device_ip}:${device.tcp_port} - Session: ${device.keep_tcp_seasion_open ? 'Persistent' : 'Temporary'}`
+        description: `TCP connection to ${device.device_name} at ${device.device_ip}:${device.tcp_port} - Session: ${device.keep_tcp_session_open ? 'Persistent' : 'Temporary'}`
       },
       {
         type: 'control_settings',
@@ -420,9 +456,12 @@ const Logs = () => {
       );
     }
     
+    // Apply sorting
+    filtered = sortData(filtered);
+    
     setFilteredLogs(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [logs, startDateTime, endDateTime, selectedType, selectedDevice, searchQuery]);
+  }, [logs, startDateTime, endDateTime, selectedType, selectedDevice, searchQuery, sortConfig]);
 
   // Get interface icon
   const getInterfaceIcon = (deviceInterface) => {
@@ -656,6 +695,12 @@ const Logs = () => {
                 Filtered
               </span>
             )}
+            {sortConfig.key && (
+              <SortingIndicator 
+                sortConfig={sortConfig} 
+                columnLabels={columnLabels}
+              />
+            )}
           </div>
           
           {/* Log Type Distribution */}
@@ -682,18 +727,34 @@ const Logs = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-[#0097b2] to-[#198c1a]">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                    Date & Time
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                    Device
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                    Description
-                  </th>
+                  <SortableTableHeader
+                    columnKey="timestamp"
+                    label="Date & Time"
+                    onSort={handleSortWithReset}
+                    sortConfig={sortConfig}
+                    icons={sortIcons}
+                  />
+                  <SortableTableHeader
+                    columnKey="device"
+                    label="Device"
+                    onSort={handleSortWithReset}
+                    sortConfig={sortConfig}
+                    icons={sortIcons}
+                  />
+                  <SortableTableHeader
+                    columnKey="type"
+                    label="Type"
+                    onSort={handleSortWithReset}
+                    sortConfig={sortConfig}
+                    icons={sortIcons}
+                  />
+                  <SortableTableHeader
+                    columnKey="description"
+                    label="Description"
+                    onSort={handleSortWithReset}
+                    sortConfig={sortConfig}
+                    icons={sortIcons}
+                  />
                 </tr>
               </thead>
               <tbody className="bg-white/60 divide-y divide-gray-200">

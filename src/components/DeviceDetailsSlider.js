@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Database, Save, Search, Edit3 } from 'lucide-react';
+import { X, Database, Save, Search, Edit3, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAppSelector } from '../hooks/redux';
 import socketService from '../services/socketService';
 import ApiService from '../services/apiService';
+import { useSorting } from '../hooks/useSorting';
+import SortableTableHeader from './SortableTableHeader';
 
 const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   const [blueprint, setBlueprint] = useState(null);
@@ -17,6 +19,28 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   const [liveValues, setLiveValues] = useState({});
   const [lastUpdateTime, setLastUpdateTime] = useState(null);
   const deviceKey = device?.device_name || null;
+
+  // Sorting state using reusable hook
+  const {
+    sortConfig,
+    handleSort,
+    sortData,
+    resetSorting
+  } = useSorting('long_name', 'asc'); // Default: sort by parameter name, ascending
+
+  // Column labels for sorting indicator
+  const columnLabels = {
+    long_name: 'Parameter Name',
+    value: 'Value',
+    unit: 'Unit'
+  };
+
+  // Icons for sorting
+  const sortIcons = {
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown
+  };
 
   // Interface display name mapping
   const getInterfaceDisplayName = (ifaceKey) => {
@@ -115,20 +139,24 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
     }
   }, [isOpen, device]);
 
-  // Filter parameters based on search
+  // Filter parameters based on search and apply sorting
   useEffect(() => {
-    if (!parameterSearch.trim()) {
-      setFilteredRegisters(registers);
-    } else {
-      const filtered = registers.filter(register =>
+    let filtered = registers;
+    
+    if (parameterSearch.trim()) {
+      filtered = registers.filter(register =>
         register.long_name.toLowerCase().includes(parameterSearch.toLowerCase()) ||
         register.short_name.toLowerCase().includes(parameterSearch.toLowerCase()) ||
         register.description.toLowerCase().includes(parameterSearch.toLowerCase()) ||
         register.unit?.toLowerCase().includes(parameterSearch.toLowerCase())
       );
-      setFilteredRegisters(filtered);
     }
-  }, [registers, parameterSearch]);
+    
+    // Apply sorting
+    filtered = sortData(filtered);
+    
+    setFilteredRegisters(filtered);
+  }, [registers, parameterSearch, sortConfig]);
 
   const fetchDeviceBlueprint = async () => {
     if (!device?.reference) return;
@@ -334,11 +362,29 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                       <div className="overflow-x-auto">
                         <table className="min-w-full">
                           <thead className="bg-gradient-to-r from-[#0097b2] to-[#198c1a] border-b border-[#0097b2]">
-                                                          <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Parameter</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Value</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Unit</th>
-                              </tr>
+                            <tr>
+                              <SortableTableHeader
+                                columnKey="long_name"
+                                label="Parameter"
+                                onSort={handleSort}
+                                sortConfig={sortConfig}
+                                icons={sortIcons}
+                              />
+                              <SortableTableHeader
+                                columnKey="value"
+                                label="Value"
+                                onSort={handleSort}
+                                sortConfig={sortConfig}
+                                icons={sortIcons}
+                              />
+                              <SortableTableHeader
+                                columnKey="unit"
+                                label="Unit"
+                                onSort={handleSort}
+                                sortConfig={sortConfig}
+                                icons={sortIcons}
+                              />
+                            </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
                             {filteredRegisters.map((register, index) => (

@@ -1,193 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppSelector } from '../hooks/redux';
 import { Wifi, WifiOff, X, Edit, Plus, Trash2, Network as NetworkIcon, Router, Server, Cable, Globe, Globe2, Search, Filter, RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 import ApiService from '../services/apiService';
+import PortsTable from '../components/PortsTable';
+import EditPortModal from '../components/EditPortModal';
+import { 
+  getInterfaceDisplayName, 
+  getInterfaceBadge, 
+  getTypeBadge, 
+  getStatusBadge, 
+  isValidIPv4, 
+  mapToBackendInterface, 
+  mapToFrontendInterface,
+  getDefaultProtocol 
+} from '../utils/deviceUtils';
+import { 
+  INTERFACES, 
+  PROTOCOLS, 
+  DEFAULT_VALUES, 
+  SERIAL_DEFAULT_OPTIONS,
+  GRADIENT_COLORS 
+} from '../constants/deviceConstants';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Simple helper components for the Serial Ports table and modal
-const PortsTable = ({ ports, onEdit, isLoading }) => {
-  const portNames = ['Serial 1', 'Serial 2'];
-  const rows = portNames.filter((name) => ports && ports[name]).map((name) => ({ name, ...ports[name] }));
 
-  return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-green-200/40 overflow-hidden shadow-lg">
-      {isLoading ? (
-        <div className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <div className="text-gray-600 font-medium">Loading serial ports...</div>
-        </div>
-      ) : rows.length === 0 ? (
-        <div className="p-8 text-center">
-          <div className="text-gray-500 font-medium">No serial ports found.</div>
-        </div>
-      ) : (
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50/80">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Port Name</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Baud Rate</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Data Bits</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Stop Bits</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Parity</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Mode</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-699 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white/60 divide-y divide-gray-200">
-            {rows.map((row) => (
-              <tr key={row.name} className="hover:bg-gray-50/80 transition-colors duration-200">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-semibold text-gray-900">{row.name}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-700">{typeof row.baud === 'number' ? row.baud : '—'}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-700">{typeof row.dataBits === 'number' ? row.dataBits : '—'}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-700">{typeof row.stopBits === 'number' ? row.stopBits : '—'}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-700">{row.parity ? row.parity.charAt(0).toUpperCase() + row.parity.slice(1) : '—'}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-700">{row.mode ? row.mode.charAt(0).toUpperCase() + row.mode.slice(1) : '—'}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button 
-                    onClick={() => onEdit(row.name)} 
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-gradient-to-r from-[#0097b2] to-[#198c1a] hover:from-[#0088a3] hover:to-[#167d19] text-white rounded-xl hover:shadow-md transition-all duration-200 transform hover:scale-105"
-                  >
-                    <Edit size={14} /> Edit
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-};
-
-const EditPortModal = ({ isOpen, portName, values, options, onClose, onSave, onChange }) => {
-  if (!isOpen) return null;
-  const { baud = '', dataBits = '', stopBits = '', parity = '', mode = '' } = values || {};
-  const dd = options || { baud: [], dataBits: [], stopBits: [], parity: [], mode: [] };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-green-200/40 p-6 w-full max-w-md relative overflow-hidden">
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2]/5 via-[#198c1a]/8 to-[#0097b2]/5"></div>
-        
-        <div className="relative z-10">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-xl font-bold bg-gradient-to-r from-[#0097b2] to-[#198c1a] bg-clip-text text-transparent">
-                Edit {portName} Settings
-              </h3>
-              <div className="h-1 w-24 bg-gradient-to-r from-[#0097b2] to-[#198c1a] rounded-full mt-2"></div>
-            </div>
-            <button 
-              onClick={onClose} 
-              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors duration-200"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Form Fields */}
-          <div className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Baud Rate</label>
-              <select 
-                value={baud} 
-                onChange={(e) => onChange({ ...values, baud: Number(e.target.value) })} 
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
-              >
-                {Array.isArray(dd.baud) && dd.baud.map((b) => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Data Bits</label>
-              <select 
-                value={dataBits} 
-                onChange={(e) => onChange({ ...values, dataBits: Number(e.target.value) })} 
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
-              >
-                {Array.isArray(dd.dataBits) && dd.dataBits.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Stop Bits</label>
-              <select 
-                value={stopBits} 
-                onChange={(e) => onChange({ ...values, stopBits: Number(e.target.value) })} 
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
-              >
-                {Array.isArray(dd.stopBits) && dd.stopBits.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Parity</label>
-              <select 
-                value={parity} 
-                onChange={(e) => onChange({ ...values, parity: e.target.value })} 
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
-              >
-                {Array.isArray(dd.parity) && dd.parity.map((v) => (
-                  <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Mode</label>
-              <select 
-                value={mode} 
-                onChange={(e) => onChange({ ...values, mode: e.target.value })} 
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
-              >
-                {Array.isArray(dd.mode) && dd.mode.map((v) => (
-                  <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex space-x-4 pt-8">
-            <button 
-              onClick={onClose} 
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:shadow-md"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={onSave} 
-              className="flex-1 bg-gradient-to-r from-[#0097b2] to-[#198c1a] hover:from-[#0088a3] hover:to-[#167d19] text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02]"
-            >
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Connection Details Popup Component
 const ConnectionDetailsPopup = ({ isOpen, onClose, connectionData }) => {
@@ -354,12 +191,33 @@ const Network = () => {
   // Connection details popup state
   const [connectionDetailsPopup, setConnectionDetailsPopup] = useState({ isOpen: false, data: null });
   const [deleteConfirmModal, setDeleteConfirmModal] = useState({ isOpen: false, device: null, iface: null });
+  
+  // Ref to track if component is mounted
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    fetchNetworkInterfaces();
-    fetchSerialConfigs();
-    fetchDevices();
-    fetchConnectivityStatus();
+    isMountedRef.current = true;
+    
+    const initializeData = async () => {
+      if (!isMountedRef.current) return;
+      
+      try {
+        await Promise.all([
+          fetchNetworkInterfaces(),
+          fetchSerialConfigs(),
+          fetchDevices(),
+          fetchConnectivityStatus()
+        ]);
+      } catch (error) {
+        console.error('Error initializing data:', error);
+      }
+    };
+    
+    initializeData();
+    
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   // Filter devices based on search query
@@ -398,6 +256,9 @@ const Network = () => {
   };
 
   const fetchNetworkInterfaces = async () => {
+    // Prevent duplicate calls if already loading or component unmounted
+    if (loading || !isMountedRef.current) return;
+    
     try {
       setLoading(true);
       // Use API route and request eth1,wlan0 in this order so we can label them consistently
@@ -421,6 +282,9 @@ const Network = () => {
   };
 
   const fetchSerialConfigs = async () => {
+    // Prevent duplicate calls if already loading or component unmounted
+    if (isLoadingPorts || !isMountedRef.current) return;
+    
     try {
       setIsLoadingPorts(true);
       const data = await ApiService.getSerialPorts();
@@ -455,16 +319,13 @@ const Network = () => {
 
   // Devices APIs
   const fetchDevices = async () => {
+    // Prevent duplicate calls if already loading or component unmounted
+    if (isLoadingDevices || !isMountedRef.current) return;
+    
     try {
       setIsLoadingDevices(true);
       const data = await ApiService.getDevices();
       const byIface = data.devices || {};
-      
-      // Map backend interface names to frontend interface names
-      const interfaceMapping = {
-        '/dev/ttyS4': 'serial_1',
-        '/dev/ttyS5': 'serial_2'
-      };
       
       // Initialize with empty arrays
       const mappedDevices = {
@@ -476,8 +337,8 @@ const Network = () => {
       
       // Map serial devices from backend format to frontend format
       Object.keys(byIface).forEach(backendInterface => {
-        if (interfaceMapping[backendInterface]) {
-          const frontendInterface = interfaceMapping[backendInterface];
+        const frontendInterface = mapToFrontendInterface(backendInterface);
+        if (frontendInterface !== backendInterface) {
           mappedDevices[frontendInterface] = Array.isArray(byIface[backendInterface]) ? byIface[backendInterface] : [];
         }
       });
@@ -509,6 +370,9 @@ const Network = () => {
   };
 
   const fetchConnectivityStatus = async () => {
+    // Prevent duplicate calls if already loading or component unmounted
+    if (isLoadingConnectivity || !isMountedRef.current) return;
+    
     try {
       setIsLoadingConnectivity(true);
       const data = await ApiService.getConnectivityStatus(['eth1', 'wlan0']);
@@ -573,11 +437,7 @@ const Network = () => {
         });
       } else {
         // Map frontend interface names back to backend interface names for API call
-        const interfaceMapping = {
-          'serial_1': '/dev/ttyS4',
-          'serial_2': '/dev/ttyS5'
-        };
-        const backendInterface = interfaceMapping[ifaceKey] || ifaceKey;
+        const backendInterface = mapToBackendInterface(ifaceKey);
         
         // Test serial connectivity with NEW payload structure
         testResult = await ApiService.testDeviceConnectivity({
@@ -698,13 +558,11 @@ const Network = () => {
   };
 
   const fetchDevicesForInterface = async (iface) => {
+    // Prevent calls if component unmounted
+    if (!isMountedRef.current) return;
+    
     try {
-      // Map frontend interface names to backend interface names
-      const interfaceMapping = {
-        'serial_1': '/dev/ttyS4',
-        'serial_2': '/dev/ttyS5'
-      };
-      const backendInterface = interfaceMapping[iface] || iface;
+      const backendInterface = mapToBackendInterface(iface);
       
       const data = await ApiService.getDevicesForInterface(backendInterface);
       setDevicesByInterface((prev) => ({ ...prev, [iface]: Array.isArray(data.devices) ? data.devices : [] }));
@@ -721,7 +579,7 @@ const Network = () => {
     setVendorReferences([]);
     
     // Set default protocol based on interface
-    const defaultProtocol = (iface === 'eth1' || iface === 'wlan0') ? 'modbus_tcp' : 'modbus_rtu';
+    const defaultProtocol = getDefaultProtocol(iface);
     
     const defaults = {
       device_name: '',
@@ -730,11 +588,12 @@ const Network = () => {
       interface: iface,
       device_id: '',
       response_timeout: 0.5,
-      device_ip: '',
-      tcp_port: 502,
-      keep_tcp_seasion_open: false,
-      cocurrent_access: false,
-      byte_timeout: 0.5
+              device_ip: '',
+        tcp_port: 502,
+        keep_tcp_session_open: false,
+        concurrent_access: false,
+        role: '',
+        byte_timeout: 0.5
     };
     setDeviceModals((prev) => ({ ...prev, [iface]: { open: true, mode: 'add', data: defaults, originalName: null } }));
   };
@@ -768,12 +627,7 @@ const Network = () => {
     const modal = deviceModals[iface];
     if (!modal || !modal.data) return;
     try {
-      // Map frontend interface names to backend interface names
-      const interfaceMapping = {
-        'serial_1': '/dev/ttyS4',
-        'serial_2': '/dev/ttyS5'
-      };
-      const backendInterface = interfaceMapping[iface] || iface;
+      const backendInterface = mapToBackendInterface(iface);
       
       const payload = { ...modal.data, interface: backendInterface };
 
@@ -792,6 +646,12 @@ const Network = () => {
       }
       if (!payload.reference) {
         notifyError('Reference is required');
+        return;
+      }
+      
+      // Check if role is required for power meter devices
+      if (payload.reference.toLowerCase().startsWith('power_meter-model') && !payload.role) {
+        notifyError('Role is required for Power Meter devices');
         return;
       }
       const toNum = (v) => (v === '' || v === null ? NaN : Number(v));
@@ -828,6 +688,17 @@ const Network = () => {
       payload.device_id = deviceIdNum;
       payload.response_timeout = respTimeoutNum;
 
+      // Check for duplicate device ID in current interface
+      const currentDevices = devicesByInterface[iface] || [];
+      const duplicateDevice = currentDevices.find(d => 
+        d.device_id === deviceIdNum && 
+        d.device_name !== (modal.originalName || payload.device_name)
+      );
+      if (duplicateDevice) {
+        notifyError(`Device ID ${deviceIdNum} already exists`);
+        return;
+      }
+
       // Build clean payload without protocol-specific leftovers
       const base = {
         device_name: payload.device_name.trim(),
@@ -836,6 +707,7 @@ const Network = () => {
         interface: backendInterface,
         device_id: payload.device_id,
         response_timeout: payload.response_timeout,
+        role: payload.role || undefined, // Include role if present
       };
       const finalPayload =
         payload.protocol === 'modbus_tcp'
@@ -843,8 +715,8 @@ const Network = () => {
               ...base,
               device_ip: payload.device_ip,
               tcp_port: payload.tcp_port,
-              keep_tcp_seasion_open: !!payload.keep_tcp_seasion_open,
-              cocurrent_access: !!payload.cocurrent_access,
+                      keep_tcp_session_open: !!payload.keep_tcp_session_open,
+        concurrent_access: !!payload.concurrent_access,
             }
           : {
               ...base,
@@ -864,7 +736,19 @@ const Network = () => {
       closeDeviceModal(iface);
       await fetchDevicesForInterface(iface);
     } catch (e) {
-      notifyError(e.message || 'Operation failed');
+      // Simple error handling
+      let errorMessage = e.message || 'Operation failed';
+      
+      // Simplify backend error messages
+      if (e.message && e.message.includes('Device ID')) {
+        errorMessage = 'Device ID already exists';
+      } else if (e.message && e.message.includes('IP address')) {
+        errorMessage = 'IP address already exists';
+      } else if (e.message && e.message.includes('already exists')) {
+        errorMessage = 'Device already exists';
+      }
+      
+      notifyError(errorMessage);
     }
   };
 
@@ -1476,8 +1360,8 @@ const Network = () => {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Keep Session:</span>
-                            <span className={`font-medium ${dev.keep_tcp_seasion_open ? 'text-green-600' : 'text-gray-600'}`}>
-                              {dev.keep_tcp_seasion_open ? 'Yes' : 'No'}
+                                                    <span className={`font-medium ${dev.keep_tcp_session_open ? 'text-green-600' : 'text-gray-600'}`}>
+                          {dev.keep_tcp_session_open ? 'Yes' : 'No'}
                             </span>
                           </div>
                         </>
@@ -1702,6 +1586,23 @@ const Network = () => {
                       ))}
                 </select>
               </div>
+              
+              {/* Conditional Role field for Power Meter devices */}
+              {d.reference && d.reference.toLowerCase().startsWith('power_meter-model') && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Role</label>
+                  <select
+                    value={d.role || ''} 
+                    onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, role: e.target.value } } }))} 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200"
+                  >
+                    <option value="">Select role…</option>
+                    <option value="grid_power_meter">Grid Power Meter</option>
+                    <option value="generator_power_meter">Generator Power Meter</option>
+                    <option value="other_power_meter">Other Power Meter</option>
+                  </select>
+                </div>
+              )}
               <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Protocol</label>
                 <select
@@ -1784,8 +1685,8 @@ const Network = () => {
                       <label className="inline-flex items-center gap-3 text-sm text-gray-700 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer">
                         <input 
                           type="checkbox" 
-                          checked={!!d.keep_tcp_seasion_open} 
-                          onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, keep_tcp_seasion_open: e.target.checked } } }))} 
+                                                  checked={!!d.keep_tcp_session_open}
+                        onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, keep_tcp_session_open: e.target.checked } } }))} 
                           className="rounded border-gray-300 text-[#0097b2] focus:ring-[#0097b2]"
                         />
                         <span className="font-medium">Keep TCP Session Open</span>
@@ -1793,8 +1694,8 @@ const Network = () => {
                       <label className="inline-flex items-center gap-3 text-sm text-gray-700 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer">
                         <input 
                           type="checkbox" 
-                          checked={!!d.cocurrent_access} 
-                          onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, cocurrent_access: e.target.checked } } }))} 
+                                                  checked={!!d.concurrent_access}
+                        onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, concurrent_access: e.target.checked } } }))} 
                           className="rounded border-gray-300 text-[#0097b2] focus:ring-[#0097b2]"
                         />
                         <span className="font-medium">Concurrent Access</span>

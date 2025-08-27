@@ -1,8 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Server, Wifi, Cable, Router, Globe2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Filter, Server, Wifi, Cable, Router, Globe2, CheckCircle, XCircle, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 import DeviceDetailsSlider from '../components/DeviceDetailsSlider';
 import ApiService from '../services/apiService';
+import { useSorting } from '../hooks/useSorting';
+import SortableTableHeader from '../components/SortableTableHeader';
+import { useApiCall } from '../hooks/useApiCall';
+import { 
+  getInterfaceDisplayName, 
+  getInterfaceBadge, 
+  getTypeBadge, 
+  getStatusBadge,
+  getInterfaceIcon
+} from '../utils/deviceUtils';
 import 'react-toastify/dist/ReactToastify.css';
 
 const Devices = () => {
@@ -17,30 +27,35 @@ const Devices = () => {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [isSliderOpen, setIsSliderOpen] = useState(false);
 
-  // Interface display name mapping
-  const getInterfaceDisplayName = (ifaceKey) => {
-    const displayNames = {
-      'eth1': 'Ethernet1',
-      'wlan0': 'WiFi',
-      'serial_1': 'Serial 1',
-      'serial_2': 'Serial 2',
-      '/dev/ttyS4': 'Serial 1',
-      '/dev/ttyS5': 'Serial 2'
-    };
-    return displayNames[ifaceKey] || ifaceKey;
+  // Sorting state using reusable hook
+  const {
+    sortConfig,
+    handleSort,
+    sortData,
+    resetSorting
+  } = useSorting('device_name', 'asc'); // Default: sort by device name, ascending
+
+  // Column labels for sorting indicator
+  const columnLabels = {
+    device_name: 'Device Name',
+    reference: 'Reference',
+    device_type: 'Device Type',
+    interface: 'Interface',
+    status: 'Status'
   };
 
-  useEffect(() => {
-    fetchDevices();
-  }, []);
+  // Icons for sorting
+  const sortIcons = {
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown
+  };
 
-  useEffect(() => {
-    filterDevices();
-  }, [devices, searchQuery, selectedInterface, selectedType, selectedStatus]);
 
-  const fetchDevices = async () => {
-    try {
-      setLoading(true);
+
+    // Use the API call hook to prevent duplicates
+  const { wrappedApiCall: wrappedFetchDevices, cleanup: cleanupFetchDevices } = useApiCall(
+    async () => {
       const data = await ApiService.getDevices();
       
       // Flatten devices from all interfaces
@@ -58,14 +73,20 @@ const Devices = () => {
       
       setDevices(allDevices);
       setReferences(data.references || []);
-    //   toast.success(`Loaded ${allDevices.length} devices successfully`);
-    } catch (error) {
-      console.error('Error fetching devices:', error);
-      toast.error('Failed to load devices: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data;
+    },
+    loading,
+    setLoading
+  );
+
+  useEffect(() => {
+    wrappedFetchDevices();
+    return cleanupFetchDevices;
+  }, []);
+
+  useEffect(() => {
+    filterDevices();
+  }, [devices, searchQuery, selectedInterface, selectedType, selectedStatus, sortConfig]);
 
   const filterDevices = () => {
     let filtered = devices;
@@ -95,6 +116,9 @@ const Devices = () => {
       filtered = filtered.filter(device => device.status === selectedStatus);
     }
 
+    // Apply sorting
+    filtered = sortData(filtered);
+
     setFilteredDevices(filtered);
   };
 
@@ -114,69 +138,7 @@ const Devices = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const baseClasses = "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold";
-    if (status === '--') {
-      return `${baseClasses} bg-gray-50 text-gray-500 border border-gray-200`;
-    }
-    switch (status) {
-      case 'online':
-        return `${baseClasses} bg-green-100 text-green-800 border border-green-200`;
-      case 'offline':
-        return `${baseClasses} bg-gray-100 text-gray-600 border border-gray-200`;
-      case 'error':
-        return `${baseClasses} bg-red-100 text-red-800 border border-red-200`;
-      default:
-        return `${baseClasses} bg-gray-50 text-gray-500 border border-gray-200`;
-    }
-  };
 
-  const getInterfaceIcon = (interfaceName) => {
-    if (interfaceName.startsWith('eth')) {
-      return <Router className="w-4 h-4 text-[#0097b2]" />;
-    } else if (interfaceName === 'wifi') {
-      return <Wifi className="w-4 h-4 text-[#198c1a]" />;
-    } else if (interfaceName.startsWith('serial')) {
-      return <Cable className="w-4 h-4 text-[#0097b2]" />;
-    }
-    return <Server className="w-4 h-4 text-gray-600" />;
-  };
-
-  const getInterfaceBadge = (interfaceName) => {
-    const baseClasses = "inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium";
-    if (interfaceName.startsWith('eth')) {
-      return `${baseClasses} bg-gradient-to-r from-[#0097b2]/20 to-[#0097b2]/10 text-[#0097b2] border border-[#0097b2]/30`;
-    } else if (interfaceName === 'wifi') {
-      return `${baseClasses} bg-gradient-to-r from-[#198c1a]/20 to-[#198c1a]/10 text-[#198c1a] border border-[#198c1a]/30`;
-    } else if (interfaceName.startsWith('serial')) {
-      return `${baseClasses} bg-gradient-to-r from-[#0097b2]/15 to-[#198c1a]/15 text-[#0097b2] border border-[#0097b2]/30`;
-    }
-    return `${baseClasses} bg-gray-50 text-gray-700 border border-gray-200`;
-  };
-
-  const getTypeBadge = (type) => {
-    if (!type) return <span className="text-gray-400 text-xs">Unknown</span>;
-    
-    const formattedType = type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    const colors = {
-      'hybrid_inverter': 'bg-gradient-to-r from-[#198c1a]/20 to-[#0097b2]/20 text-[#198c1a] border-[#198c1a]/30',
-      'pcs': 'bg-gradient-to-r from-[#0097b2]/20 to-[#198c1a]/20 text-[#0097b2] border-[#0097b2]/30',
-      'bms': 'bg-gradient-to-r from-[#0097b2]/15 to-[#198c1a]/25 text-[#0097b2] border-[#0097b2]/30',
-      'genset_controller': 'bg-gradient-to-r from-[#198c1a]/25 to-[#0097b2]/15 text-[#198c1a] border-[#198c1a]/30',
-      'solar_inverter': 'bg-gradient-to-r from-[#198c1a]/20 to-[#0097b2]/20 text-[#198c1a] border-[#198c1a]/30',
-      'power_meter': 'bg-gradient-to-r from-[#0097b2]/20 to-[#198c1a]/20 text-[#0097b2] border-[#0097b2]/30',
-      'sensor': 'bg-gradient-to-r from-[#0097b2]/15 to-[#198c1a]/15 text-[#0097b2] border-[#0097b2]/30',
-      'io_module': 'bg-gradient-to-r from-[#198c1a]/15 to-[#0097b2]/15 text-[#198c1a] border-[#198c1a]/30',
-    };
-    
-    const colorClass = colors[type] || 'bg-gray-50 text-gray-700 border-gray-200';
-    
-    return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium border ${colorClass}`}>
-        {formattedType}
-      </span>
-    );
-  };
 
 
 
@@ -327,6 +289,7 @@ const Devices = () => {
                 </div>
               </div>
             </div>
+            
           </div>
         </div>
       </div>
@@ -340,11 +303,41 @@ const Devices = () => {
               <table className="min-w-full">
                 <thead className="bg-gradient-to-r from-[#0097b2] to-[#198c1a] border-b border-[#0097b2]">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Device</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Reference</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Type</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Interface</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Status</th>
+                    <SortableTableHeader
+                      columnKey="device_name"
+                      label="Device"
+                      onSort={handleSort}
+                      sortConfig={sortConfig}
+                      icons={sortIcons}
+                    />
+                    <SortableTableHeader
+                      columnKey="reference"
+                      label="Reference"
+                      onSort={handleSort}
+                      sortConfig={sortConfig}
+                      icons={sortIcons}
+                    />
+                    <SortableTableHeader
+                      columnKey="device_type"
+                      label="Type"
+                      onSort={handleSort}
+                      sortConfig={sortConfig}
+                      icons={sortIcons}
+                    />
+                    <SortableTableHeader
+                      columnKey="interface"
+                      label="Interface"
+                      onSort={handleSort}
+                      sortConfig={sortConfig}
+                      icons={sortIcons}
+                    />
+                    <SortableTableHeader
+                      columnKey="status"
+                      label="Status"
+                      onSort={handleSort}
+                      sortConfig={sortConfig}
+                      icons={sortIcons}
+                    />
                     <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">Details</th>
                   </tr>
                 </thead>
@@ -403,7 +396,7 @@ const Devices = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className={getInterfaceBadge(device.interface)}>
-                            {getInterfaceIcon(device.interface)}
+                            {getInterfaceIcon(device.interface, { Router, Wifi, Cable, Server })}
                             <span>{getInterfaceDisplayName(device.interface)}</span>
                           </div>
                         </td>
