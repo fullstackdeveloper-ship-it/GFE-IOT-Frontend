@@ -5,13 +5,17 @@ import {
   Globe,
   Clock,
   Lock,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import Toast from '../components/Toast';
 import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const Settings = () => {
   const { appConfig, updateConfig, updateDeviceTime, isLoading } = useAppContext();
+  const { changePassword } = useAuth();
   
   const [config, setConfig] = useState({
     siteName: '',
@@ -25,6 +29,12 @@ const Settings = () => {
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
+  });
+  
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
   });
   
   const [saving, setSaving] = useState(false);
@@ -123,14 +133,31 @@ const Settings = () => {
       return;
     }
 
-    if (passwords.newPassword.length < 8) {
-      showToast('Password must be at least 8 characters long', 'error');
+    if (passwords.newPassword.length < 6) {
+      showToast('Password must be at least 6 characters long', 'error');
       return;
     }
 
-    // Simple placeholder for now
-    showToast('Password change functionality will be implemented with authentication', 'info');
-    setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    try {
+      setSaving(true);
+      const result = await changePassword(passwords.currentPassword, passwords.newPassword);
+      
+      if (result.success) {
+        showToast('Password changed successfully!', 'success');
+        setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        showToast(result.message || 'Password change failed', 'error');
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      showToast('Password change failed. Please try again.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
   if (isLoading) {
@@ -313,50 +340,81 @@ const Settings = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Current Password
               </label>
-              <input
-                type="password"
-                value={passwords.currentPassword}
-                onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                placeholder="Enter current password"
-              />
+              <div className="relative">
+                <input
+                  type={showPasswords.current ? 'text' : 'password'}
+                  value={passwords.currentPassword}
+                  onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  placeholder="Enter current password"
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility('current')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 New Password
               </label>
-              <input
-                type="password"
-                value={passwords.newPassword}
-                onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                placeholder="Enter new password"
-              />
+              <div className="relative">
+                <input
+                  type={showPasswords.new ? 'text' : 'password'}
+                  value={passwords.newPassword}
+                  onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  placeholder="Enter new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility('new')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Confirm New Password
               </label>
-              <input
-                type="password"
-                value={passwords.confirmPassword}
-                onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                placeholder="Confirm new password"
-              />
+              <div className="relative">
+                <input
+                  type={showPasswords.confirm ? 'text' : 'password'}
+                  value={passwords.confirmPassword}
+                  onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  placeholder="Confirm new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility('confirm')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="mt-6 flex justify-end relative z-10">
             <button
               onClick={handleChangePassword}
-              disabled={!passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword}
+              disabled={!passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword || saving}
               className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
             >
-              <Lock className="w-4 h-4" />
-              <span>Change Password</span>
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Lock className="w-4 h-4" />
+              )}
+              <span>{saving ? 'Changing Password...' : 'Change Password'}</span>
             </button>
           </div>
         </div>

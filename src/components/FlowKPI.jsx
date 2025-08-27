@@ -95,7 +95,7 @@ function curvedPath(from, to) {
 function ArrowStream({ d, kW }) {
   const thickness = Math.max(3, Math.min(kW / 60, 8));
   const speed = 8; // slower (higher = slower path travel)
-  
+
   return (
     <g>
       {/* Base line */}
@@ -134,19 +134,19 @@ function ArrowStream({ d, kW }) {
       </polygon>
 
       {/* Slight trailing ghost arrow for animation effect */}
-      <polygon
+          <polygon
         points="-14,-8 0,0 -14,8"
         fill="#60a5fa"
         opacity="0.6"
-      >
-        <animateMotion
-          dur={`${speed}s`}
+          >
+            <animateMotion
+              dur={`${speed}s`}
           begin="1s"
-          repeatCount="indefinite"
-          rotate="auto"
-          path={d}
-        />
-      </polygon>
+              repeatCount="indefinite"
+              rotate="auto"
+              path={d}
+            />
+          </polygon>
     </g>
   );
 }
@@ -388,7 +388,7 @@ export default function FlowKPI() {
     {/* Translate everything down by 30px */}
     <g transform="translate(0,80)">
       {/* Grid (optional) */}
-      <defs>
+        <defs>
   {/* simple shadow without blur */}
   <filter id="floorShadow" x="-10%" y="-10%" width="120%" height="120%">
     <feOffset in="SourceAlpha" dx="1" dy="1" result="off"/>
@@ -405,8 +405,8 @@ export default function FlowKPI() {
     <stop offset="0%"  stopColor="#1f2937" stopOpacity="0.8"/>
     <stop offset="60%" stopColor="#0f172a" stopOpacity="0.9"/>
     <stop offset="100%" stopColor="#111827" stopOpacity="0.8"/>
-  </linearGradient>
-</defs>
+          </linearGradient>
+        </defs>
 
       {/* --- floor labels (static names) --- */}
 <FloorText
@@ -460,7 +460,7 @@ export default function FlowKPI() {
       <NodeDetails name="LOAD" node={nodes.LOAD} />
 
 
-      <image
+        <image
         href="/kpi-images/updated/genset.png"
         x={POS.GENSET.x - 40}
         y={POS.GENSET.y - 40}
@@ -468,8 +468,8 @@ export default function FlowKPI() {
         height={SIZE.h + 80}
         preserveAspectRatio="xMidYMid meet"
         opacity="1"
-      />
-      <image
+        />
+        <image
         href="/kpi-images/updated/load.png"
           x={418}
           y={-20}
@@ -477,8 +477,8 @@ export default function FlowKPI() {
         height={SIZE.h + 80}
         preserveAspectRatio="xMidYMid meet"
         opacity="1"
-      />
-      <image
+        />
+        <image
         href="/kpi-images/updated/solar.png"
         x={POS.PV.x - 40}
         y={POS.PV.y - 40}
@@ -486,8 +486,8 @@ export default function FlowKPI() {
         height={SIZE.h + 80}
         preserveAspectRatio="xMidYMid meet"
         opacity="1"
-      />
-      <image
+        />
+        <image
         href="/kpi-images/updated/grid.png"
         x={POS.GRID.x - 40}
         y={POS.GRID.y - 40}
@@ -497,7 +497,7 @@ export default function FlowKPI() {
         opacity="1"
       />
     </g>
-  </svg>
+      </svg>
 </div>
 
     </div>

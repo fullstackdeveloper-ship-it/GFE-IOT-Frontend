@@ -558,17 +558,17 @@ const Logs = () => {
                   <FileText className="text-white drop-shadow-lg" size={28} />
                 </div>
               </div>
-              <div>
+          <div>
                 <h1 className="text-4xl font-black text-gray-800 mb-1 tracking-tight drop-shadow-lg">
                   System Logs
                 </h1>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-[#198c1a] rounded-full animate-ping"></div>
                   <p className="text-gray-700 text-lg font-medium drop-shadow-sm">Monitor and analyze system activities, communications, and events</p>
-                </div>
-              </div>
-            </div>
-            
+          </div>
+        </div>
+      </div>
+
             {/* Header Stats */}
             <div className="flex items-center gap-3">
               <div className="px-4 py-2 bg-white/80 border border-[#198c1a]/20 rounded-full shadow-md backdrop-blur-sm">
@@ -580,7 +580,7 @@ const Logs = () => {
             </div>
           </div>
         </div>
-
+        
         {/* Filters Section */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-green-200/40 p-6 shadow-lg">
           <div className="flex items-center gap-3 mb-6">
@@ -602,7 +602,7 @@ const Logs = () => {
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
                 />
               </div>
-            </div>
+                      </div>
             
             {/* End Date & Time */}
             <div>
@@ -616,8 +616,8 @@ const Logs = () => {
                   step="1"
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
                 />
-              </div>
-            </div>
+                        </div>
+                      </div>
             
             {/* Log Type */}
             <div>
@@ -649,8 +649,8 @@ const Logs = () => {
                   </option>
                 ))}
               </select>
-            </div>
-          </div>
+                    </div>
+                  </div>
           
           {/* Search and Actions */}
           <div className="flex items-center gap-4">
@@ -664,7 +664,7 @@ const Logs = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
               />
-            </div>
+                </div>
             
             {/* Action Buttons */}
             <div className="flex items-center gap-3">
@@ -706,9 +706,9 @@ const Logs = () => {
                 sortConfig={sortConfig} 
                 columnLabels={columnLabels}
               />
-            )}
-          </div>
-          
+        )}
+      </div>
+
           {/* Log Type Distribution */}
           <div className="flex items-center gap-3">
             {logTypes.map(type => {
@@ -820,7 +820,7 @@ const Logs = () => {
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-700 max-w-md">
                           {log.description}
-                        </div>
+            </div>
                       </td>
                     </tr>
                   ))
@@ -884,8 +884,8 @@ const Logs = () => {
                 Next
                 <ChevronRight className="w-4 h-4" />
               </button>
-            </div>
-          </div>
+        </div>
+      </div>
         )}
       </div>
     </div>

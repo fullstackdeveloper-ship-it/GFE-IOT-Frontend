@@ -17,6 +17,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   const [showValueModal, setShowValueModal] = useState(false);
   const [selectedRegister, setSelectedRegister] = useState(null);
   const [modalValue, setModalValue] = useState('');
+  const [isSettingValue, setIsSettingValue] = useState(false);
   const [liveValues, setLiveValues] = useState({});
   const [lastUpdateTime, setLastUpdateTime] = useState(null);
   const [isDataUpdating, setIsDataUpdating] = useState(false);
@@ -201,14 +202,55 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
     setModalValue('');
   };
 
-  const confirmValueChange = () => {
-    if (selectedRegister && modalValue.trim()) {
-      // TODO: Implement actual value setting when backend is ready
-      console.log('Setting value for register:', selectedRegister.id, 'Value:', modalValue);
-      toast.success(`Value set for ${selectedRegister.long_name}`);
-      closeValueModal();
-    } else {
+  const confirmValueChange = async () => {
+    if (!selectedRegister || !modalValue.trim()) {
       toast.error('Please enter a valid value');
+      return;
+    }
+
+    // Validate that the value is a number
+    const numericValue = Number(modalValue);
+    if (isNaN(numericValue)) {
+      toast.error('Please enter a valid numeric value');
+      return;
+    }
+
+    setIsSettingValue(true);
+
+    try {
+      // Prepare the payload for the API
+      const parameterData = {
+        device_name: device.device_name,
+        device_type: device.device_type,
+        reference: device.reference,
+        register: selectedRegister.short_name,
+        value: numericValue
+      };
+
+      // Call the API to set the parameter value
+      const response = await ApiService.setParameterValue(parameterData);
+
+      if (response.success) {
+        toast.success(`Parameter value set successfully for ${selectedRegister.long_name}`);
+        closeValueModal();
+      } else {
+        toast.error(response.error || 'Failed to set parameter value');
+      }
+    } catch (error) {
+      console.error('Error setting parameter value:', error);
+      
+      // Handle different types of errors
+      if (error.message.includes('400')) {
+        toast.error('Invalid parameter data. Please check the values.');
+      } else if (error.message.includes('500')) {
+        toast.error('Server error. Please try again later.');
+      } else if (error.message.includes('fetch')) {
+        toast.error('Network error. Please check your connection.');
+      } else {
+        toast.error('Failed to set parameter value. Please try again.');
+      }
+    } finally {
+      setIsSettingValue(false);
     }
   };
 
@@ -573,9 +615,17 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
               </button>
               <button
                 onClick={confirmValueChange}
-                className="flex-1 bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white px-4 py-3 rounded-lg hover:from-[#007a93] hover:to-[#147015] transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+                disabled={isSettingValue}
+                className="flex-1 bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white px-4 py-3 rounded-lg hover:from-[#007a93] hover:to-[#147015] transition-all duration-200 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Confirm
+                {isSettingValue ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Setting...
+                  </>
+                ) : (
+                  'Confirm'
+                )}
               </button>
             </div>
           </div>

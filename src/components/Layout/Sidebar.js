@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../../hooks/redux';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   Home,
   Network,
@@ -17,17 +18,21 @@ import {
 const Sidebar = () => {
   const location = useLocation();
   const { unreadCount } = useAppSelector((state) => state.alerts);
+  const { isAuthenticated } = useAuth();
 
   // Define navigation items with their routes
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: 'Home', path: '/overview' },
-    { id: 'network',  label: 'Network',  icon: 'Network', path: '/network' },
-    { id: 'devices',  label: 'Devices',  icon: 'Server',  path: '/devices' },
-    { id: 'logs',     label: 'Logs',     icon: 'FileText', path: '/logs' },
-    { id: 'alerts',   label: 'Alerts',   icon: 'Bell',     path: '/alerts' },
-    { id: 'settings', label: 'Settings', icon: 'Settings', path: '/settings' },
-    { id: 'control',  label: 'Control',  icon: 'Sliders',  path: '/control' },
+    { id: 'overview', label: 'Overview', icon: 'Home', path: '/overview', protected: false },
+    { id: 'network',  label: 'Network',  icon: 'Network', path: '/network', protected: true },
+    { id: 'devices',  label: 'Devices',  icon: 'Server',  path: '/devices', protected: false },
+    { id: 'logs',     label: 'Logs',     icon: 'FileText', path: '/logs', protected: false },
+    { id: 'alerts',   label: 'Alerts',   icon: 'Bell',     path: '/alerts', protected: false },
+    { id: 'settings', label: 'Settings', icon: 'Settings', path: '/settings', protected: true },
+    { id: 'control',  label: 'Control',  icon: 'Sliders',  path: '/control', protected: true },
   ];
+
+  // Filter tabs based on authentication status
+  const visibleTabs = tabs.filter(tab => !tab.protected || isAuthenticated);
 
   // Robust active check: exact or nested path match
   const isActivePath = (path) =>
@@ -144,7 +149,7 @@ const Sidebar = () => {
       {/* Navigation */}
       <nav className="flex-1 p-4 relative z-10">
         <ul className="space-y-2">
-          {tabs.map((tab, index) => {
+          {visibleTabs.map((tab, index) => {
             const isActive = isActivePath(tab.path);
             return (
               <li

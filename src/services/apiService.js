@@ -5,12 +5,20 @@ class ApiService {
   static async request(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
     
+    // Get auth token from localStorage
+    const token = localStorage.getItem('authToken');
+    
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
     };
+
+    // Add authorization header if token exists
+    if (token) {
+      defaultOptions.headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const config = {
       ...defaultOptions,
@@ -25,6 +33,21 @@ class ApiService {
       const response = await fetch(url, config);
       
       if (!response.ok) {
+        // Handle 401/403 authentication errors
+        if (response.status === 401 || response.status === 403) {
+          // Clear invalid token
+          localStorage.removeItem('authToken');
+          // Don't redirect for auth endpoints to avoid loops
+          if (!endpoint.includes('/auth/')) {
+            window.location.href = '/overview';
+          }
+          // For auth endpoints, let the calling code handle the error
+          if (endpoint.includes('/auth/')) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || errorData.error || 'Authentication failed');
+          }
+          throw new Error('Authentication required');
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
@@ -97,6 +120,14 @@ class ApiService {
   static async deleteDevice(deviceName) {
     return this.request(`/devices/${deviceName}`, {
       method: 'DELETE',
+    });
+  }
+
+  // Parameters API
+  static async setParameterValue(parameterData) {
+    return this.request('/parameters/set-value', {
+      method: 'POST',
+      body: JSON.stringify(parameterData),
     });
   }
 
