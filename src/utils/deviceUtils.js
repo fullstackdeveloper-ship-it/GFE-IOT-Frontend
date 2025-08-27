@@ -91,22 +91,64 @@ export const getTypeBadgeClasses = (deviceType) => {
 
 /**
  * Get device type badge JSX element
- * @param {string} deviceType - Device type
+ * @param {Object|string} deviceOrType - Device object or device type string
  * @returns {JSX.Element} Badge component
  */
-export const getTypeBadge = (deviceType) => {
-  if (!deviceType) {
-    return <span className="text-gray-400 text-xs">Unknown</span>;
+export const getTypeBadge = (deviceOrType) => {
+  // Handle case where deviceOrType is a string (backward compatibility)
+  if (typeof deviceOrType === 'string') {
+    if (!deviceOrType) {
+      return <span className="text-gray-400 text-xs">Unknown</span>;
+    }
+    
+    const formattedType = formatDeviceType(deviceOrType);
+    const className = getTypeBadgeClasses(deviceOrType);
+    
+    return (
+      <span className={className}>
+        {formattedType}
+      </span>
+    );
   }
   
-  const formattedType = formatDeviceType(deviceType);
-  const className = getTypeBadgeClasses(deviceType);
+  // Handle case where deviceOrType is a device object
+  if (deviceOrType && typeof deviceOrType === 'object') {
+    const device = deviceOrType;
+    
+    // If device has a role, show the role text
+    if (device.role) {
+      const roleLabels = {
+        'grid_power_meter': 'Grid Power Meter',
+        'generator_power_meter': 'Generator Power Meter',
+        'other_power_meter': 'Other Power Meter'
+      };
+      
+      const roleText = roleLabels[device.role] || formatDeviceType(device.role);
+      const className = getTypeBadgeClasses(device.device_type || 'power_meter');
+      
+      return (
+        <span className={className}>
+          {roleText}
+        </span>
+      );
+    }
+    
+    // Otherwise, show the device type
+    if (!device.device_type) {
+      return <span className="text-gray-400 text-xs">Unknown</span>;
+    }
+    
+    const formattedType = formatDeviceType(device.device_type);
+    const className = getTypeBadgeClasses(device.device_type);
+    
+    return (
+      <span className={className}>
+        {formattedType}
+      </span>
+    );
+  }
   
-  return (
-    <span className={className}>
-      {formattedType}
-    </span>
-  );
+  return <span className="text-gray-400 text-xs">Unknown</span>;
 };
 
 /**
@@ -193,4 +235,39 @@ export const getDefaultProtocol = (iface) => {
 export const formatDeviceType = (deviceType) => {
   if (!deviceType) return '';
   return deviceType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
+/**
+ * Get device type or role text (string only, no JSX)
+ * @param {Object|string} deviceOrType - Device object or device type string
+ * @returns {string} Device type or role text
+ */
+export const getDeviceTypeText = (deviceOrType) => {
+  // Handle case where deviceOrType is a string (backward compatibility)
+  if (typeof deviceOrType === 'string') {
+    if (!deviceOrType) return 'Unknown';
+    return formatDeviceType(deviceOrType);
+  }
+  
+  // Handle case where deviceOrType is a device object
+  if (deviceOrType && typeof deviceOrType === 'object') {
+    const device = deviceOrType;
+    
+    // If device has a role, show the role text
+    if (device.role) {
+      const roleLabels = {
+        'grid_power_meter': 'Grid Power Meter',
+        'generator_power_meter': 'Generator Power Meter',
+        'other_power_meter': 'Other Power Meter'
+      };
+      
+      return roleLabels[device.role] || formatDeviceType(device.role);
+    }
+    
+    // Otherwise, show the device type
+    if (!device.device_type) return 'Unknown';
+    return formatDeviceType(device.device_type);
+  }
+  
+  return 'Unknown';
 };

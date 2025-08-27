@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ApiService from '../services/apiService';
+import { getDeviceTypeText } from '../utils/deviceUtils';
 
 const Logs = () => {
   const { isConnected } = useAppSelector((state) => state.sensor);
@@ -68,7 +69,7 @@ const Logs = () => {
 
   // Column labels for sorting indicator
   const columnLabels = {
-    timestamp: 'Date & Time',
+    timestamp: 'Date & Time (dd-mm-yyyy)',
     device: 'Device',
     type: 'Type',
     description: 'Description'
@@ -415,11 +416,11 @@ const Logs = () => {
       setLogs(generatedLogs);
       setFilteredLogs(generatedLogs);
       
-      // Set default dates (last 7 days)
+      // Set default dates (last 7 days) with seconds
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      setEndDateTime(now.toISOString().slice(0, 16));
-      setStartDateTime(weekAgo.toISOString().slice(0, 16));
+      setEndDateTime(now.toISOString().slice(0, 19));
+      setStartDateTime(weekAgo.toISOString().slice(0, 19));
     }
   }, [devices]);
 
@@ -474,23 +475,26 @@ const Logs = () => {
     return icons[deviceInterface] || Cable;
   };
 
-  // Format timestamp
+  // Format timestamp in dd-mm-yyyy format with time and seconds
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
   };
 
   // Handle filter reset
   const resetFilters = () => {
-    setStartDateTime('');
-    setEndDateTime('');
+    // Set default dates (last 7 days) with seconds
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    setEndDateTime(now.toISOString().slice(0, 19));
+    setStartDateTime(weekAgo.toISOString().slice(0, 19));
     setSelectedType('');
     setSelectedDevice('');
     setSearchQuery('');
@@ -594,6 +598,7 @@ const Logs = () => {
                   type="datetime-local"
                   value={startDateTime}
                   onChange={(e) => setStartDateTime(e.target.value)}
+                  step="1"
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
                 />
               </div>
@@ -608,6 +613,7 @@ const Logs = () => {
                   type="datetime-local"
                   value={endDateTime}
                   onChange={(e) => setEndDateTime(e.target.value)}
+                  step="1"
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
                 />
               </div>
@@ -639,7 +645,7 @@ const Logs = () => {
                 <option value="">All Devices</option>
                 {devices.map(device => (
                   <option key={device.device_name} value={device.device_name}>
-                    {device.device_name} ({device.device_type})
+                    {device.device_name} ({getDeviceTypeText(device)})
                   </option>
                 ))}
               </select>

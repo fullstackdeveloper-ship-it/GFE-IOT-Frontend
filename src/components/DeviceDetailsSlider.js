@@ -6,6 +6,7 @@ import socketService from '../services/socketService';
 import ApiService from '../services/apiService';
 import { useSorting } from '../hooks/useSorting';
 import SortableTableHeader from './SortableTableHeader';
+import { getTypeBadge } from '../utils/deviceUtils';
 
 const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   const [blueprint, setBlueprint] = useState(null);
@@ -18,6 +19,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   const [modalValue, setModalValue] = useState('');
   const [liveValues, setLiveValues] = useState({});
   const [lastUpdateTime, setLastUpdateTime] = useState(null);
+  const [isDataUpdating, setIsDataUpdating] = useState(false);
   const deviceKey = device?.device_name || null;
 
   // Sorting state using reusable hook
@@ -65,6 +67,9 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
 
     const onSensorData = (dict) => {
       if (dict && typeof dict === 'object' && !Array.isArray(dict)) {
+        // Trigger animation for new data
+        setIsDataUpdating(true);
+        
         setLiveValues(prev => {
           const newValues = { ...prev, ...dict };
           console.log(`📊 Live values updated for ${deviceKey}:`, newValues);
@@ -92,6 +97,11 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
         } else {
           setLastUpdateTime(new Date());
         }
+        
+        // Reset animation after a short delay
+        setTimeout(() => {
+          setIsDataUpdating(false);
+        }, 800);
       }
     };
 
@@ -215,10 +225,32 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   const renderValueDisplay = (register) => {
     const val = liveValues?.[register.short_name];
     const display = (val ?? val === 0) ? String(val) : '—';
+    const hasLiveValue = (val ?? val === 0);
+    
     return (
-      <span className="text-sm font-mono text-gray-600 px-3 py-2 bg-gray-50 rounded border min-w-[100px] text-center inline-block">
-        {display}
-      </span>
+      <div className="relative">
+        <span className={`text-sm font-mono px-3 py-2 rounded-lg border min-w-[100px] text-center inline-block transition-all duration-300 ${
+          hasLiveValue 
+            ? isDataUpdating 
+              ? 'text-blue-700 bg-blue-50 border-blue-300 shadow-md transform scale-105' 
+              : 'text-emerald-700 bg-emerald-50 border-emerald-300 shadow-sm'
+            : 'text-gray-600 bg-gray-50 border-gray-200'
+        }`}>
+          {display}
+        </span>
+        {/* Elegant animated indicator for live values */}
+        {hasLiveValue && isDataUpdating && (
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-ping shadow-lg shadow-blue-500/50"></div>
+        )}
+        {/* Subtle glow effect for live values */}
+        {hasLiveValue && (
+          <div className={`absolute inset-0 rounded-lg border transition-all duration-300 ${
+            isDataUpdating 
+              ? 'border-blue-400 shadow-lg shadow-blue-400/25' 
+              : 'border-emerald-400 shadow-sm shadow-emerald-400/20'
+          }`}></div>
+        )}
+      </div>
     );
   };
 
@@ -245,7 +277,47 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   if (!device) return null;
 
   return (
-    <>setMappedData
+    <>
+      {/* CSS Animations for real-time effects */}
+      <style>
+        {`
+          @keyframes slideInLeft {
+            from {
+              opacity: 0;
+              transform: translateX(-20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
+          }
+          
+          @keyframes valueUpdate {
+            0% {
+              transform: scale(1);
+            }
+            50% {
+              transform: scale(1.05);
+            }
+            100% {
+              transform: scale(1);
+            }
+          }
+          
+          @keyframes dataPulse {
+            0% {
+              box-shadow: 0 0 0 0 rgba(0, 151, 178, 0.4);
+            }
+            70% {
+              box-shadow: 0 0 0 10px rgba(0, 151, 178, 0);
+            }
+            100% {
+              box-shadow: 0 0 0 0 rgba(0, 151, 178, 0);
+            }
+          }
+        `}
+      </style>
+      
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black transition-opacity duration-500 z-40 ${
@@ -270,16 +342,28 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                     {device.device_name}
                   </h1>
                   {isOpen && deviceKey && lastUpdateTime && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-green-200 font-medium">
-                        {lastUpdateTime.toLocaleTimeString()}
-                      </span>
+                    <div className="flex items-center gap-3">
+                      {/* Elegant real-time indicator */}
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                          isDataUpdating 
+                            ? 'bg-yellow-400 animate-ping shadow-lg shadow-yellow-400/50' 
+                            : 'bg-green-400 animate-pulse shadow-md shadow-green-400/30'
+                        }`}></div>
+                        <span className="text-xs text-green-100 font-medium">
+                          {lastUpdateTime.toLocaleTimeString()}
+                        </span>
+                        {isDataUpdating && (
+                          <span className="text-xs text-yellow-100 font-medium animate-pulse">
+                            Live
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
                 <div className="flex items-center gap-4 text-white/80 text-sm">
-                  <span>{device.device_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                  <span>{getTypeBadge(device).props.children}</span>
                   <span>•</span>
                   <span>{getInterfaceDisplayName(device.interface)}</span>
                   <span>•</span>
@@ -358,7 +442,11 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                       <p className="text-gray-500 text-sm">Try adjusting your search terms.</p>
                     </div>
                   ) : (
-                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                    <div className={`bg-white rounded-xl border overflow-hidden shadow-sm transition-all duration-300 ${
+                      isDataUpdating 
+                        ? 'border-blue-200 shadow-md shadow-blue-200/20' 
+                        : 'border-gray-200 shadow-sm'
+                    }`}>
                       <div className="overflow-x-auto">
                         <table className="min-w-full">
                           <thead className="bg-gradient-to-r from-[#0097b2] to-[#198c1a] border-b border-[#0097b2]">

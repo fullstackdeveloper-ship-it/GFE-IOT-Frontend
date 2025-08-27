@@ -392,7 +392,7 @@ const Devices = () => {
                           <div className="text-sm text-gray-900 font-medium">{device.reference}</div>
                         </td>
                         <td className="px-6 py-4">
-                          {getTypeBadge(device.device_type)}
+                          {getTypeBadge(device)}
                         </td>
                         <td className="px-6 py-4">
                           <div className={getInterfaceBadge(device.interface)}>
