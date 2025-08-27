@@ -7,51 +7,59 @@ import 'react-toastify/dist/ReactToastify.css';
 
 // Simple helper components for the Serial Ports table and modal
 const PortsTable = ({ ports, onEdit, isLoading }) => {
-  const portNames = ['COM1', 'COM2'];
+  const portNames = ['Serial 1', 'Serial 2'];
   const rows = portNames.filter((name) => ports && ports[name]).map((name) => ({ name, ...ports[name] }));
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-green-200/40 overflow-hidden shadow-lg">
       {isLoading ? (
-        <div className="p-6 text-center text-gray-500">Loading serial ports…</div>
+        <div className="p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <div className="text-gray-600 font-medium">Loading serial ports...</div>
+        </div>
       ) : rows.length === 0 ? (
-        <div className="p-6 text-center text-gray-500">No serial ports found.</div>
+        <div className="p-8 text-center">
+          <div className="text-gray-500 font-medium">No serial ports found.</div>
+        </div>
       ) : (
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50/80">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Port Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Baud Rate</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Bits</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stop Bits</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parity</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Port Name</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Baud Rate</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Data Bits</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Stop Bits</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Parity</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Mode</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-699 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white/60 divide-y divide-gray-200">
             {rows.map((row) => (
-              <tr key={row.name}>
+              <tr key={row.name} className="hover:bg-gray-50/80 transition-colors duration-200">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{row.name}</div>
+                  <div className="text-sm font-semibold text-gray-900">{row.name}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{typeof row.baud === 'number' ? row.baud : '—'}</div>
+                  <div className="text-sm text-gray-700">{typeof row.baud === 'number' ? row.baud : '—'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{typeof row.dataBits === 'number' ? row.dataBits : '—'}</div>
+                  <div className="text-sm text-gray-700">{typeof row.dataBits === 'number' ? row.dataBits : '—'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{typeof row.stopBits === 'number' ? row.stopBits : '—'}</div>
+                  <div className="text-sm text-gray-700">{typeof row.stopBits === 'number' ? row.stopBits : '—'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{row.parity ? row.parity.charAt(0).toUpperCase() + row.parity.slice(1) : '—'}</div>
+                  <div className="text-sm text-gray-700">{row.parity ? row.parity.charAt(0).toUpperCase() + row.parity.slice(1) : '—'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{row.mode ? row.mode.charAt(0).toUpperCase() + row.mode.slice(1) : '—'}</div>
+                  <div className="text-sm text-gray-700">{row.mode ? row.mode.charAt(0).toUpperCase() + row.mode.slice(1) : '—'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <button onClick={() => onEdit(row.name)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
+                  <button 
+                    onClick={() => onEdit(row.name)} 
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-gradient-to-r from-[#0097b2] to-[#198c1a] hover:from-[#0088a3] hover:to-[#167d19] text-white rounded-xl hover:shadow-md transition-all duration-200 transform hover:scale-105"
+                  >
                     <Edit size={14} /> Edit
                   </button>
                 </td>
@@ -70,61 +78,111 @@ const EditPortModal = ({ isOpen, portName, values, options, onClose, onSave, onC
   const dd = options || { baud: [], dataBits: [], stopBits: [], parity: [], mode: [] };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Edit {portName} Settings</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={20} />
-          </button>
-        </div>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-green-200/40 p-6 w-full max-w-md relative overflow-hidden">
+        {/* Gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0097b2]/5 via-[#198c1a]/8 to-[#0097b2]/5"></div>
+        
+        <div className="relative z-10">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-xl font-bold bg-gradient-to-r from-[#0097b2] to-[#198c1a] bg-clip-text text-transparent">
+                Edit {portName} Settings
+              </h3>
+              <div className="h-1 w-24 bg-gradient-to-r from-[#0097b2] to-[#198c1a] rounded-full mt-2"></div>
+            </div>
+            <button 
+              onClick={onClose} 
+              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors duration-200"
+            >
+              <X size={20} />
+            </button>
+          </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Baud Rate</label>
-            <select value={baud} onChange={(e) => onChange({ ...values, baud: Number(e.target.value) })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-              {Array.isArray(dd.baud) && dd.baud.map((b) => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
+          {/* Form Fields */}
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Baud Rate</label>
+              <select 
+                value={baud} 
+                onChange={(e) => onChange({ ...values, baud: Number(e.target.value) })} 
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
+              >
+                {Array.isArray(dd.baud) && dd.baud.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Data Bits</label>
+              <select 
+                value={dataBits} 
+                onChange={(e) => onChange({ ...values, dataBits: Number(e.target.value) })} 
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
+              >
+                {Array.isArray(dd.dataBits) && dd.dataBits.map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Stop Bits</label>
+              <select 
+                value={stopBits} 
+                onChange={(e) => onChange({ ...values, stopBits: Number(e.target.value) })} 
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
+              >
+                {Array.isArray(dd.stopBits) && dd.stopBits.map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Parity</label>
+              <select 
+                value={parity} 
+                onChange={(e) => onChange({ ...values, parity: e.target.value })} 
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
+              >
+                {Array.isArray(dd.parity) && dd.parity.map((v) => (
+                  <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Mode</label>
+              <select 
+                value={mode} 
+                onChange={(e) => onChange({ ...values, mode: e.target.value })} 
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200"
+              >
+                {Array.isArray(dd.mode) && dd.mode.map((v) => (
+                  <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Data Bits</label>
-            <select value={dataBits} onChange={(e) => onChange({ ...values, dataBits: Number(e.target.value) })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-              {Array.isArray(dd.dataBits) && dd.dataBits.map((v) => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Stop Bits</label>
-            <select value={stopBits} onChange={(e) => onChange({ ...values, stopBits: Number(e.target.value) })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-              {Array.isArray(dd.stopBits) && dd.stopBits.map((v) => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Parity</label>
-            <select value={parity} onChange={(e) => onChange({ ...values, parity: e.target.value })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-              {Array.isArray(dd.parity) && dd.parity.map((v) => (
-                <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Mode</label>
-            <select value={mode} onChange={(e) => onChange({ ...values, mode: e.target.value })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-              {Array.isArray(dd.mode) && dd.mode.map((v) => (
-                <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
-              ))}
-            </select>
-          </div>
-        </div>
 
-        <div className="flex space-x-3 pt-6">
-          <button onClick={onClose} className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400">Cancel</button>
-          <button onClick={onSave} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Save</button>
+          {/* Action Buttons */}
+          <div className="flex space-x-4 pt-8">
+            <button 
+              onClick={onClose} 
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:shadow-md"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={onSave} 
+              className="flex-1 bg-gradient-to-r from-[#0097b2] to-[#198c1a] hover:from-[#0088a3] hover:to-[#167d19] text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02]"
+            >
+              Save Changes
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -367,7 +425,17 @@ const Network = () => {
       setIsLoadingPorts(true);
       const data = await ApiService.getSerialPorts();
       const { dropdownOptions: dd, ...portsObj } = data || {};
-      setPorts(portsObj || {});
+      
+      // Map backend COM1/COM2 to frontend Serial 1/Serial 2
+      const mappedPorts = {};
+      if (portsObj.COM1) {
+        mappedPorts['Serial 1'] = portsObj.COM1;
+      }
+      if (portsObj.COM2) {
+        mappedPorts['Serial 2'] = portsObj.COM2;
+      }
+      
+      setPorts(mappedPorts);
       setDropdownOptions(
         dd || {
           baud: [110, 300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200],
@@ -874,9 +942,13 @@ const Network = () => {
         parity: typeof modalValues.parity === 'string' && dd.parity.includes(modalValues.parity) ? modalValues.parity : 'none',
         mode: typeof modalValues.mode === 'string' && dd.mode.includes(modalValues.mode) ? modalValues.mode : (dd.mode[0] || 'raw'),
       };
-      console.log('🔧 Saving serial config', { port: editingPort, ...payload });
+      
+      // Map frontend Serial 1/Serial 2 back to backend COM1/COM2
+      const backendPortName = editingPort === 'Serial 1' ? 'COM1' : editingPort === 'Serial 2' ? 'COM2' : editingPort;
+      
+      console.log('🔧 Saving serial config', { frontendPort: editingPort, backendPort: backendPortName, ...payload });
       const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      const resp = await fetch(`${backendUrl}/serial-ports/${editingPort}`, {
+      const resp = await fetch(`${backendUrl}/serial-ports/${backendPortName}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -1251,7 +1323,7 @@ const Network = () => {
                       const found = networkInterfaces.find((i) => i.name === ifaceKey) || { name: ifaceKey };
                       openNetworkModal(found);
                     } else {
-                      const map = { serial_1: 'COM1', serial_2: 'COM2' };
+                      const map = { serial_1: 'Serial 1', serial_2: 'Serial 2' };
                       openSerialEdit(map[ifaceKey]);
                     }
                   }}
