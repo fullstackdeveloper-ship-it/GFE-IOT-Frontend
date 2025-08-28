@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }) => {
     window.location.href = '/overview';
   };
 
-  const changePassword = async (currentPassword, newPassword) => {
+  const changePassword = async (newPassword) => {
     try {
       setIsLoading(true);
       const response = await apiService.request('/auth/change-password', {
@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }) => {
         headers: {
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ currentPassword, newPassword })
+        body: JSON.stringify({ newPassword })
       });
 
       if (response.success) {
@@ -127,9 +127,7 @@ export const AuthProvider = ({ children }) => {
       // Enhanced error messages for password change
       const errorMessage = error.message || 'Password change failed. Please try again.';
       
-      if (errorMessage.includes('Current password') || errorMessage.includes('incorrect')) {
-        toast.error('❌ Current password is incorrect. Please try again.');
-      } else if (errorMessage.includes('New password') || errorMessage.includes('6 characters')) {
+      if (errorMessage.includes('New password') || errorMessage.includes('6 characters')) {
         toast.error('⚠️ New password must be at least 6 characters long.');
       } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
         toast.error('🌐 Network error. Please check your connection.');

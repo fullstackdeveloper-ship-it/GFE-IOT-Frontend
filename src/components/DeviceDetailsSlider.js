@@ -34,8 +34,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   // Column labels for sorting indicator
   const columnLabels = {
     long_name: 'Parameter Name',
-    value: 'Value',
-    unit: 'Unit'
+    value_unit: 'Value & Unit'
   };
 
   // Icons for sorting
@@ -43,6 +42,38 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
     ArrowUpDown,
     ArrowUp,
     ArrowDown
+  };
+
+  // Custom sorting function for combined value and unit
+  const sortRegisters = (data, sortConfig) => {
+    if (!sortConfig.key) return data;
+    
+    const sortedData = [...data].sort((a, b) => {
+      let aValue, bValue;
+      
+      if (sortConfig.key === 'value_unit') {
+        // For value_unit column, combine value and unit for sorting
+        const aVal = liveValues?.[a.short_name] ?? '—';
+        const bVal = liveValues?.[b.short_name] ?? '—';
+        const aUnit = getDisplayUnit(a);
+        const bUnit = getDisplayUnit(b);
+        
+        aValue = `${aVal}${aUnit !== '—' ? aUnit : ''}`;
+        bValue = `${bVal}${bUnit !== '—' ? bUnit : ''}`;
+      } else {
+        // For other columns, use the original value
+        aValue = a[sortConfig.key] || '';
+        bValue = b[sortConfig.key] || '';
+      }
+      
+      if (sortConfig.direction === 'asc') {
+        return aValue.localeCompare(bValue, undefined, { numeric: true });
+      } else {
+        return bValue.localeCompare(aValue, undefined, { numeric: true });
+      }
+    });
+    
+    return sortedData;
   };
 
   // Interface display name mapping
@@ -155,16 +186,23 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
     let filtered = registers;
     
     if (parameterSearch.trim()) {
-      filtered = registers.filter(register =>
-        register.long_name.toLowerCase().includes(parameterSearch.toLowerCase()) ||
-        register.short_name.toLowerCase().includes(parameterSearch.toLowerCase()) ||
-        register.description.toLowerCase().includes(parameterSearch.toLowerCase()) ||
-        register.unit?.toLowerCase().includes(parameterSearch.toLowerCase())
-      );
+      filtered = registers.filter(register => {
+        const searchTerm = parameterSearch.toLowerCase();
+        const value = liveValues?.[register.short_name];
+        const displayValue = (value ?? value === 0) ? String(value) : '';
+        const unit = getDisplayUnit(register);
+        const combinedValue = `${displayValue}${unit !== '—' ? unit : ''}`;
+        
+        return register.long_name.toLowerCase().includes(searchTerm) ||
+               register.short_name.toLowerCase().includes(searchTerm) ||
+               register.description.toLowerCase().includes(searchTerm) ||
+               register.unit?.toLowerCase().includes(searchTerm) ||
+               combinedValue.toLowerCase().includes(searchTerm);
+      });
     }
     
     // Apply sorting
-    filtered = sortData(filtered);
+    filtered = sortRegisters(filtered, sortConfig);
     
     setFilteredRegisters(filtered);
   }, [registers, parameterSearch, sortConfig]);
@@ -268,17 +306,18 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
     const val = liveValues?.[register.short_name];
     const display = (val ?? val === 0) ? String(val) : '—';
     const hasLiveValue = (val ?? val === 0);
+    const unit = getDisplayUnit(register);
     
     return (
       <div className="relative">
-        <span className={`text-sm font-mono px-3 py-2 rounded-lg border min-w-[100px] text-center inline-block transition-all duration-300 ${
+        <span className={`text-sm font-mono px-3 py-2 rounded-lg border min-w-[120px] text-center inline-block transition-all duration-300 ${
           hasLiveValue 
             ? isDataUpdating 
               ? 'text-blue-700 bg-blue-50 border-blue-300 shadow-md transform scale-105' 
               : 'text-emerald-700 bg-emerald-50 border-emerald-300 shadow-sm'
             : 'text-gray-600 bg-gray-50 border-gray-200'
         }`}>
-          {display}
+          {display}{unit !== '—' ? unit : ''}
         </span>
         {/* Elegant animated indicator for live values */}
         {hasLiveValue && isDataUpdating && (
@@ -452,7 +491,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                       value={parameterSearch}
                       onChange={(e) => setParameterSearch(e.target.value)}
                       className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] bg-white transition-all duration-200"
-                      placeholder="Search parameters by name, unit, or description..."
+                      placeholder="Search parameters by name, value, unit, or description..."
                     />
                     {parameterSearch && (
                       <button
@@ -501,15 +540,8 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                                 icons={sortIcons}
                               />
                               <SortableTableHeader
-                                columnKey="value"
-                                label="Value"
-                                onSort={handleSort}
-                                sortConfig={sortConfig}
-                                icons={sortIcons}
-                              />
-                              <SortableTableHeader
-                                columnKey="unit"
-                                label="Unit"
+                                columnKey="value_unit"
+                                label="Value & Unit"
                                 onSort={handleSort}
                                 sortConfig={sortConfig}
                                 icons={sortIcons}
@@ -535,11 +567,6 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                                     {renderValueDisplay(register)}
                                     {renderActionButton(register)}
                                   </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className="text-sm text-gray-600 font-medium">
-                                    {getDisplayUnit(register)}
-                                  </span>
                                 </td>
                               </tr>
                             ))}

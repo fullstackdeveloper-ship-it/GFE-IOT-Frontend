@@ -26,13 +26,11 @@ const Settings = () => {
   });
   
   const [passwords, setPasswords] = useState({
-    currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
   
   const [showPasswords, setShowPasswords] = useState({
-    current: false,
     new: false,
     confirm: false
   });
@@ -140,11 +138,11 @@ const Settings = () => {
 
     try {
       setSaving(true);
-      const result = await changePassword(passwords.currentPassword, passwords.newPassword);
+      const result = await changePassword(passwords.newPassword);
       
       if (result.success) {
         showToast('Password changed successfully!', 'success');
-        setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setPasswords({ newPassword: '', confirmPassword: '' });
       } else {
         showToast(result.message || 'Password change failed', 'error');
       }
@@ -338,28 +336,6 @@ const Settings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Current Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPasswords.current ? 'text' : 'password'}
-                  value={passwords.currentPassword}
-                  onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  placeholder="Enter current password"
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePasswordVisibility('current')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
                 New Password
               </label>
               <div className="relative">
@@ -406,7 +382,7 @@ const Settings = () => {
           <div className="mt-6 flex justify-end relative z-10">
             <button
               onClick={handleChangePassword}
-              disabled={!passwords.currentPassword || !passwords.newPassword || !passwords.confirmPassword || saving}
+              disabled={!passwords.newPassword || !passwords.confirmPassword || saving}
               className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
             >
               {saving ? (
