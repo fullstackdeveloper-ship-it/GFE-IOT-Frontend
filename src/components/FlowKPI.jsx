@@ -1,50 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-
-/** ---------- Industry-standard power flow data ---------- */
-const makeEdges = () => {
-  const pvGeneration = 180 + Math.random() * 120;  // 180–300 kW
-  const gensetOutput  = 60 + Math.random() * 90;   // 60–150 kW
-  const loadDemand    = 280 + Math.random() * 160; // 280–440 kW
-
-  const pvToLoad = Math.min(pvGeneration, loadDemand);
-  const remainingLoadAfterPV = Math.max(0, loadDemand - pvToLoad);
-  const gensetToLoad = Math.min(gensetOutput, remainingLoadAfterPV);
-  const remainingLoadAfterGenset = Math.max(0, remainingLoadAfterPV - gensetToLoad);
-  const surplusPV = Math.max(0, pvGeneration - pvToLoad);
-
-  const flows = [
-    { from: "PV",     to: "LOAD", kW: pvToLoad },
-    { from: "GENSET", to: "LOAD", kW: gensetToLoad },
-  ];
-  if (remainingLoadAfterGenset > 0) flows.push({ from: "GRID", to: "LOAD", kW: remainingLoadAfterGenset });
-  else if (surplusPV > 0)           flows.push({ from: "PV",   to: "GRID", kW: surplusPV });
-
-  return flows;
-};
-
-const makeNodes = () => {
-  const pvGen    = 180 + Math.random() * 120;
-  const gensetGen= 60 + Math.random() * 90;
-  const loadDem  = 280 + Math.random() * 160;
-
-  const pvToLoad = Math.min(pvGen, loadDem);
-  const remainingAfterPV = Math.max(0, loadDem - pvToLoad);
-  const gensetToLoad = Math.min(gensetGen, remainingAfterPV);
-  const remainingAfterGenset = Math.max(0, remainingAfterPV - gensetToLoad);
-  const surplusPV = Math.max(0, pvGen - pvToLoad);
-
-  let gridStatus = "Balanced";
-  let gridValue  = 0;
-  if (remainingAfterGenset > 0) { gridStatus = "Import"; gridValue = remainingAfterGenset; }
-  else if (surplusPV > 0)       { gridStatus = "Export"; gridValue = surplusPV; }
-
-  return {
-    PV:     { kW: pvGen },
-    GENSET: { kW: gensetGen },
-    LOAD:   { kW: loadDem },
-    GRID:   { kW: gridValue, status: gridStatus },
-  };
-};
+import { useAppSelector } from "../hooks/redux";
+import socketService from "../services/socketService";
 
 /** ---------- Layout ---------- */
 const POS = {
@@ -56,11 +12,8 @@ const POS = {
 const SIZE   = { w: 140, h: 100 };
 const CENTER = { x: 340, y: 260 };
 
-// Junction right in front of LOAD (tweak as you like)
 const LOAD_CENTER = { x: POS.LOAD.x + SIZE.w / 2, y: POS.LOAD.y + SIZE.h / 2 };
 const JUNCTION    = { x: POS.LOAD.x - 30, y: LOAD_CENTER.y };
-
-/** ---------- Helpers ---------- */
 const fmt = (v) => `${Math.round(v)} kW`;
 
 function centerOf(name) {
@@ -70,22 +23,19 @@ function centerOf(name) {
   };
 }
 
-// Curved path FROM a source center TO the junction, with slight offset so curves don't overlap
 function pathToJunction(from, offsetY = 0) {
   const s = centerOf(from);
   const cx = CENTER.x;
-  const cy = CENTER.y + offsetY; // fan the curves a bit
+  const cy = CENTER.y + offsetY;
   const jx = JUNCTION.x;
   const jy = JUNCTION.y;
   return `M ${s.x} ${s.y} Q ${cx} ${cy} ${jx} ${jy}`;
 }
 
-// Short straight path from junction INTO the middle of LOAD
 function pathJunctionToLoad() {
   return `M ${JUNCTION.x} ${JUNCTION.y} L ${LOAD_CENTER.x} ${LOAD_CENTER.y}`;
 }
 
-// Curved path between two nodes (for PV -> GRID export)
 function curvedPath(from, to) {
   const s = centerOf(from);
   const t = centerOf(to);
@@ -94,31 +44,28 @@ function curvedPath(from, to) {
 
 function ArrowStream({ d, kW }) {
   const thickness = Math.max(3, Math.min(kW / 60, 8));
-  const speed = 8; // slower (higher = slower path travel)
+  const speed = 8;
 
   return (
     <g>
-      {/* Base line */}
       <path
         d={d}
         fill="none"
-        stroke="#60a5fa" // light blue base
+        stroke="#60a5fa"
         strokeWidth={thickness}
         strokeLinecap="round"
         opacity="0.8"
       />
 
-      {/* Glow trail (blurred stroke behind arrow) */}
       <path
         d={d}
         fill="none"
-        stroke="#3b82f6" // darker blue
+        stroke="#3b82f6"
         strokeWidth={thickness + 2}
         strokeLinecap="round"
         opacity="0.3"
       />
 
-      {/* Single arrow head */}
       <polygon
         points="-14,-8 0,0 -14,8"
         fill="#3b82f6"
@@ -133,20 +80,19 @@ function ArrowStream({ d, kW }) {
         />
       </polygon>
 
-      {/* Slight trailing ghost arrow for animation effect */}
-          <polygon
+      <polygon
         points="-14,-8 0,0 -14,8"
         fill="#60a5fa"
         opacity="0.6"
-          >
-            <animateMotion
-              dur={`${speed}s`}
+      >
+        <animateMotion
+          dur={`${speed}s`}
           begin="1s"
-              repeatCount="indefinite"
-              rotate="auto"
-              path={d}
-            />
-          </polygon>
+          repeatCount="indefinite"
+          rotate="auto"
+          path={d}
+        />
+      </polygon>
     </g>
   );
 }
@@ -158,28 +104,27 @@ function NodeDetails({ name, node }) {
   const topY = POS[name].y - 80; // lift above the image
   const mainKW = `${Math.round(node.kW)} kW`;
 
-  // Example extra values (dummy for now, replace with real data)
+  // Real-time values from socket data
   const extras = [];
   if (name === "LOAD") {
-    extras.push({ label: "Today's Energy", value: `${(node.kW * 4).toFixed(0)} kWh` });
-    extras.push({ label: "Reactive Power", value: `${(node.kW / 5).toFixed(1)} kVAr` });
+    extras.push({ label: "Total Load", value: `${Math.round(node.kW)} kW` });
+    extras.push({ label: "Status", value: node.status || "Active" });
   }
   if (name === "GRID") {
-    extras.push({ label: "Status", value: node.status });
-    extras.push({ label: "Exchange", value: `${node.kW.toFixed(1)} kW` });
+    extras.push({ label: "Status", value: node.status || "Balanced" });
+    extras.push({ label: "Exchange", value: `${Math.round(node.kW)} kW` });
   }
   if (name === "GENSET") {
-    extras.push({ label: "Fuel Used", value: `${(node.kW / 10).toFixed(1)} L` });
-    extras.push({ label: "Runtime", value: `${(node.kW / 15).toFixed(1)} h` });
+    extras.push({ label: "Status", value: node.status || "Stopped" });
+    extras.push({ label: "Output", value: `${Math.round(node.kW)} kW` });
   }
   if (name === "PV") {
-    extras.push({ label: "Real Power", value: `${node.kW.toFixed(1)} kW` });
-    extras.push({ label: "Irradiance", value: `${(node.kW / 3).toFixed(1)} W/m²` });
+    extras.push({ label: "Status", value: node.status || "Inactive" });
+    extras.push({ label: "Generation", value: `${Math.round(node.kW)} kW` });
   }
 
   return (
     <g>
-      {/* Vertical line marker */}
       <line
         x1={cx}
         y1={topY + 10}
@@ -190,7 +135,6 @@ function NodeDetails({ name, node }) {
         opacity="0.9"
       />
 
-      {/* Main KW value (big, centered on top) */}
       <text
         x={cx}
         y={topY}
@@ -204,12 +148,10 @@ function NodeDetails({ name, node }) {
         {mainKW}
       </text>
 
-      {/* Extra values, aligned left/right */}
       {extras.map((e, i) => (
         <g key={i}>
-          {/* Value (left side, bold) */}
           <text
-            x={cx - 5} // shift left
+            x={cx - 5}
             y={topY + 20 + i * 16}
             textAnchor="end"
             fontFamily="Inter, sans-serif"
@@ -221,9 +163,8 @@ function NodeDetails({ name, node }) {
             {e.value}
           </text>
 
-          {/* Label (right side, lighter color) */}
           <text
-            x={cx + 5} // shift right
+            x={cx + 5}
             y={topY + 20 + i * 16}
             textAnchor="start"
             fontFamily="Inter, sans-serif"
@@ -309,26 +250,129 @@ function FloorValue({ x, y, value, label, rotate = 0, skewX = -22, scaleY = 0.68
   );
 }
 
-
-
 /** ---------- Component ---------- */
 export default function FlowKPI() {
-  const [edges, setEdges] = useState(makeEdges());
-  const [nodes, setNodes] = useState(makeNodes());
+  const { powerFlowData } = useAppSelector((state) => state.sensor);
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Default values when no real-time data is available
+  const defaultNodes = {
+    PV: { kW: 0, status: 'Inactive' },
+    GENSET: { kW: 0, status: 'Stopped' },
+    LOAD: { kW: 0, status: 'No Load' },
+    GRID: { kW: 0, status: 'Balanced' }
+  };
+
+  const nodes = useMemo(() => {
+    if (!powerFlowData) return defaultNodes;
+
+    const solar = parseFloat(powerFlowData.solar) || 0;
+    const genset = parseFloat(powerFlowData.genset) || 0;
+    const load = parseFloat(powerFlowData.load) || 0;
+    const grid = parseFloat(powerFlowData.grid) || 0;
+
+    return {
+      PV: { 
+        kW: solar, 
+        status: powerFlowData.status?.solar || (solar > 0 ? 'Active' : 'Inactive')
+      },
+      GENSET: { 
+        kW: genset, 
+        status: powerFlowData.status?.genset || (genset > 0 ? 'Running' : 'Stopped')
+      },
+      LOAD: { 
+        kW: load, 
+        status: powerFlowData.status?.load || (load > 0 ? 'Active' : 'No Load')
+      },
+      GRID: { 
+        kW: grid, 
+        status: powerFlowData.status?.grid || (grid > 0 ? 'Import' : grid < 0 ? 'Export' : 'Balanced')
+      }
+    };
+  }, [powerFlowData]);
+
+  const edges = useMemo(() => {
+    const flows = [];
+    
+    if (nodes.PV.kW > 0 && nodes.LOAD.kW > 0) {
+      const pvToLoad = Math.min(nodes.PV.kW, nodes.LOAD.kW);
+      if (pvToLoad > 5) {
+        flows.push({ from: "PV", to: "LOAD", kW: pvToLoad });
+      }
+    }
+
+    if (nodes.GENSET.kW > 0 && nodes.LOAD.kW > 0) {
+      const gensetToLoad = Math.min(nodes.GENSET.kW, nodes.LOAD.kW);
+      if (gensetToLoad > 5) {
+        flows.push({ from: "GENSET", to: "LOAD", kW: gensetToLoad });
+      }
+    }
+
+    if (nodes.GRID.kW > 0) {
+      flows.push({ from: "GRID", to: "LOAD", kW: nodes.GRID.kW });
+    }
+
+    if (nodes.GRID.kW < 0) {
+      flows.push({ from: "PV", to: "GRID", kW: Math.abs(nodes.GRID.kW) });
+    }
+
+    return flows;
+  }, [nodes]);
 
   useEffect(() => {
-    const t = setInterval(() => {
-      setEdges(makeEdges());
-      setNodes(makeNodes());
-    }, 2000);
-    return () => clearInterval(t);
+    let socket = socketService.socket;
+    
+    const joinRoom = () => {
+      if (socket && socket.connected) {
+        socket.emit('join-room', 'power-flow');
+        setIsConnected(true);
+      }
+    };
+
+    const handleConnect = () => {
+      joinRoom();
+    };
+
+    const handleDisconnect = () => {
+      setIsConnected(false);
+    };
+
+    if (socket && socket.connected) {
+      joinRoom();
+    } else if (socket) {
+      socket.once('connect', joinRoom);
+    } else {
+      const timer = setTimeout(() => {
+        socket = socketService.socket;
+        if (socket && socket.connected) {
+          joinRoom();
+        } else if (socket) {
+          socket.once('connect', joinRoom);
+        }
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+
+    if (socket) {
+      socket.on('connect', handleConnect);
+      socket.on('disconnect', handleDisconnect);
+    }
+
+    return () => {
+      if (socket) {
+        socket.off('connect', handleConnect);
+        socket.off('disconnect', handleDisconnect);
+        socket.off('connect', joinRoom);
+        socket.emit('leave-room', 'power-flow');
+      }
+      setIsConnected(false);
+    };
   }, []);
 
-  // Split edges by destination
   const toLoadEdges = useMemo(() => edges.filter(e => e.to === "LOAD" && e.kW > 5), [edges]);
   const otherEdges  = useMemo(() => edges.filter(e => !(e.to === "LOAD") && e.kW > 5), [edges]);
 
-  // Smooth fan offsets for curves into the junction (top -> 0, next -> ±12, etc.)
   const fanOffsets = useMemo(() => {
     const n = toLoadEdges.length;
     const step = 16;
@@ -336,13 +380,11 @@ export default function FlowKPI() {
     return Array.from({ length: n }, (_, i) => start + i * step);
   }, [toLoadEdges.length]);
 
-  // Total kW going into LOAD = thickness of the single final arrow
   const totalIntoLoad = useMemo(
     () => toLoadEdges.reduce((sum, e) => sum + e.kW, 0),
     [toLoadEdges]
   );
 
-  // Paths
   const intoJunctionPaths = useMemo(
     () => toLoadEdges.map((e, i) => ({ id: `${e.from}-to-j`, d: pathToJunction(e.from, fanOffsets[i]), kW: e.kW })),
     [toLoadEdges, fanOffsets]
@@ -354,7 +396,6 @@ export default function FlowKPI() {
   );
 
   const otherPaths = useMemo(() => {
-    // currently only PV->GRID case
     return otherEdges.map(e => ({
       id: `${e.from}-${e.to}`,
       d: curvedPath(e.from, e.to),
@@ -364,7 +405,6 @@ export default function FlowKPI() {
 
   return (
     <div className="h-full flex flex-col rounded-2xl shadow-xl border border-green-200/40 p-1 overflow-hidden" style={{ backgroundColor: "#FFFFFF", boxShadow: "0 10px 25px -5px rgba(25, 140, 26, 0.15), 0 0 0 1px rgba(25, 140, 26, 0.05)" }}>
-      {/* Header */}
       <div className="flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
@@ -373,14 +413,18 @@ export default function FlowKPI() {
             </h3>
             <div className="h-1 w-20 bg-gradient-to-r from-[#198c1a] to-[#0097b2] rounded-full mt-1" />
           </div>
+          <div className="flex items-center space-x-2">
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className="text-xs text-gray-500">
+              {isConnected ? 'Live' : 'Offline'}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* SVG */}
-      {/* SVG */}
 <div className="flex-grow flex items-center justify-center overflow-hidden min-h-0" style={{ backgroundColor: "#FFFFFF" }}>
   <svg
-    viewBox="0 0 720 650"   // increased height from 560 → 600 (adds padding at bottom & top)
+    viewBox="0 0 720 650"
     className="w-full h-full max-h-full"
     width="100%" height="100%"
     style={{ display: "block", backgroundColor: "#FFFFFF" }}
@@ -471,7 +515,7 @@ export default function FlowKPI() {
         />
         <image
         href="/kpi-images/updated/load.png"
-          x={418}
+          x={428}
           y={-20}
         width={SIZE.w + 35}
         height={SIZE.h + 80}

@@ -1,6 +1,6 @@
 import io from 'socket.io-client';
 import { store } from '../store';
-import { setSocketData, setConnectionStatus, addSensorData, clearSensorData } from '../features/sensorSlice';
+import { setSocketData, setPowerFlowData, setConnectionStatus, addSensorData, clearSensorData } from '../features/sensorSlice';
 import { addLog, clearLogs } from '../features/logsSlice';
 import { addAlert, clearAlerts } from '../features/alertsSlice';
 
@@ -84,6 +84,10 @@ class SocketService {
           ...data,
           timestamp: new Date().toISOString(),
         }));
+      });
+
+      this.socket.on('power-flow-data', (data) => {
+        store.dispatch(setPowerFlowData(data));
       });
 
       this.socket.on('alert', (alertData) => {

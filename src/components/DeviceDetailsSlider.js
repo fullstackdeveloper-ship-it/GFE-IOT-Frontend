@@ -34,7 +34,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
   // Column labels for sorting indicator
   const columnLabels = {
     long_name: 'Parameter Name',
-    value_unit: 'Value & Unit'
+    value_unit: 'Value'
   };
 
   // Icons for sorting
@@ -53,13 +53,14 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
       
       if (sortConfig.key === 'value_unit') {
         // For value_unit column, combine value and unit for sorting
-        const aVal = liveValues?.[a.short_name] ?? '—';
-        const bVal = liveValues?.[b.short_name] ?? '—';
+        const aVal = liveValues?.[a.short_name];
+        const bVal = liveValues?.[b.short_name];
         const aUnit = getDisplayUnit(a);
         const bUnit = getDisplayUnit(b);
         
-        aValue = `${aVal}${aUnit !== '—' ? aUnit : ''}`;
-        bValue = `${bVal}${bUnit !== '—' ? bUnit : ''}`;
+        // Only include unit if there's a value
+        aValue = (aVal ?? aVal === 0) ? `${aVal}${aUnit !== '—' ? aUnit : ''}` : '—';
+        bValue = (bVal ?? bVal === 0) ? `${bVal}${bUnit !== '—' ? bUnit : ''}` : '—';
       } else {
         // For other columns, use the original value
         aValue = a[sortConfig.key] || '';
@@ -189,15 +190,15 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
       filtered = registers.filter(register => {
         const searchTerm = parameterSearch.toLowerCase();
         const value = liveValues?.[register.short_name];
-        const displayValue = (value ?? value === 0) ? String(value) : '';
+        const hasValue = (value ?? value === 0);
         const unit = getDisplayUnit(register);
-        const combinedValue = `${displayValue}${unit !== '—' ? unit : ''}`;
+        const combinedValue = hasValue ? `${value}${unit !== '—' ? unit : ''}` : '';
         
         return register.long_name.toLowerCase().includes(searchTerm) ||
                register.short_name.toLowerCase().includes(searchTerm) ||
                register.description.toLowerCase().includes(searchTerm) ||
                register.unit?.toLowerCase().includes(searchTerm) ||
-               combinedValue.toLowerCase().includes(searchTerm);
+               (hasValue && combinedValue.toLowerCase().includes(searchTerm));
       });
     }
     
@@ -304,9 +305,16 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
 
   const renderValueDisplay = (register) => {
     const val = liveValues?.[register.short_name];
-    const display = (val ?? val === 0) ? String(val) : '—';
     const hasLiveValue = (val ?? val === 0);
     const unit = getDisplayUnit(register);
+    
+    // Only show value with unit if there's an actual value
+    let display;
+    if (hasLiveValue) {
+      display = `${val}${unit !== '—' ? unit : ''}`;
+    } else {
+      display = '—';
+    }
     
     return (
       <div className="relative">
@@ -317,7 +325,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
               : 'text-emerald-700 bg-emerald-50 border-emerald-300 shadow-sm'
             : 'text-gray-600 bg-gray-50 border-gray-200'
         }`}>
-          {display}{unit !== '—' ? unit : ''}
+          {display}
         </span>
         {/* Elegant animated indicator for live values */}
         {hasLiveValue && isDataUpdating && (
@@ -491,7 +499,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                       value={parameterSearch}
                       onChange={(e) => setParameterSearch(e.target.value)}
                       className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] bg-white transition-all duration-200"
-                      placeholder="Search parameters by name, value, unit, or description..."
+                      placeholder="Search parameters by name, value, or description..."
                     />
                     {parameterSearch && (
                       <button
@@ -541,7 +549,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                               />
                               <SortableTableHeader
                                 columnKey="value_unit"
-                                label="Value & Unit"
+                                label="Value"
                                 onSort={handleSort}
                                 sortConfig={sortConfig}
                                 icons={sortIcons}
