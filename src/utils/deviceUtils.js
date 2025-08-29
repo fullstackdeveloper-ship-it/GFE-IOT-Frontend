@@ -133,8 +133,17 @@ export const getTypeBadge = (deviceOrType) => {
       );
     }
     
-    // Otherwise, show the device type
+    // Otherwise, show the device type or reference
     if (!device.device_type) {
+      // If no device_type, show the reference instead
+      if (device.reference) {
+        const className = getTypeBadgeClasses('reference');
+        return (
+          <span className={className}>
+            {device.reference}
+          </span>
+        );
+      }
       return <span className="text-gray-400 text-xs">Unknown</span>;
     }
     
