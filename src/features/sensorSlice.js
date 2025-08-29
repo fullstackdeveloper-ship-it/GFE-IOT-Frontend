@@ -27,23 +27,21 @@ export const sensorSlice = createSlice({
     setPowerFlowData: (state, action) => {
       const newData = action.payload;
       
-      const processedData = {
+      // Store the data directly without complex processing
+      state.powerFlowData = {
         ...newData,
-        solar: newData.receivedDevices?.includes('solar') ? newData.solar : state.previousPowerFlowValues.solar,
-        grid: newData.receivedDevices?.includes('grid') ? newData.grid : state.previousPowerFlowValues.grid,
-        genset: newData.receivedDevices?.includes('genset') ? newData.genset : state.previousPowerFlowValues.genset,
-        load: newData.load
+        timestamp: newData.timestamp || Date.now(),
+        time: newData.time || new Date().toISOString(),
+        solar: parseFloat(newData.solar) || 0,
+        grid: parseFloat(newData.grid) || 0,
+        genset: parseFloat(newData.genset) || 0,
+        load: parseFloat(newData.load) || 0,
+        batchId: newData.batchId
       };
       
-      state.previousPowerFlowValues = {
-        solar: newData.receivedDevices?.includes('solar') ? newData.solar : state.previousPowerFlowValues.solar,
-        grid: newData.receivedDevices?.includes('grid') ? newData.grid : state.previousPowerFlowValues.grid,
-        genset: newData.receivedDevices?.includes('genset') ? newData.genset : state.previousPowerFlowValues.genset,
-        load: newData.load
-      };
-      
-      state.powerFlowData = processedData;
       state.lastUpdate = new Date().toISOString();
+      
+      console.log('📊 Redux: powerFlowData updated:', state.powerFlowData);
     },
     setConnectionStatus: (state, action) => {
       state.isConnected = action.payload;

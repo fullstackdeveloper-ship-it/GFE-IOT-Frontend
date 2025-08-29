@@ -90,6 +90,12 @@ class SocketService {
         store.dispatch(setPowerFlowData(data));
       });
 
+      // Listen for power-flow-update events from the backend
+      this.socket.on('power-flow-update', (data) => {
+        console.log('📊 SocketService - Received power-flow-update:', data.batchId);
+        store.dispatch(setPowerFlowData(data));
+      });
+
       this.socket.on('alert', (alertData) => {
         store.dispatch(addAlert(alertData));
       });

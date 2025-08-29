@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -11,7 +11,7 @@ import {
   ReferenceArea,
   ReferenceLine,
 } from "recharts";
-import { io } from "socket.io-client";
+import { useAppSelector } from "../hooks/redux";
 
 /* -------------------------- API Data Fetching -------------------------- */
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
@@ -55,13 +55,9 @@ const CustomTooltip = ({ active, payload }) => {
 
   const rows = [
     { key: "pv", label: "Solar Generation", color: "#f59e0b" },
-    { key: "load", label: "Load Demand", color: "#3b82f6" },
-    { key: "genset", label: "Generator Output", color: "#ef4444" },
-    {
-      key: "grid",
-      label: d.grid >= 0 ? "Grid Import" : "Grid Export",
-      color: d.grid >= 0 ? "#06b6d4" : "#10b981"
-    },
+    { key: "grid", label: "Grid Exchange", color: "#3b82f6" },
+    { key: "genset", label: "Generator Output", color: "#10b981" },
+    { key: "load", label: "Load Demand", color: "#ef4444" },
   ];
 
   return (
@@ -139,43 +135,89 @@ const formatXAxisTick = (tickValue) =>
 const PowerFlowLast24h = () => {
   const [data, setData] = useState([]);
   const [nightAreas, setNightAreas] = useState([]);
-  const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedHours, setSelectedHours] = useState(1);
+  // Time range options (10 minutes to 2 hours)
+  const timeRangeOptions = [
+    { value: 1/6, label: '10 min' },    // 10 minutes
+    { value: 1/3, label: '20 min' },    // 20 minutes
+    { value: 1/2, label: '30 min' },    // 30 minutes
+    { value: 1, label: '1 hour' },      // 1 hour
+    { value: 1.5, label: '1.5 hours' }, // 1.5 hours
+    { value: 2, label: '2 hours' }      // 2 hours
+  ];
+
+  const [selectedHours, setSelectedHours] = useState(1/6); // Default: 10 minutes
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [lastProcessedBatchId, setLastProcessedBatchId] = useState(null);
+  
+  // Get real-time data from Redux state (same as KPI component)
+  const { powerFlowData } = useAppSelector((state) => state.sensor);
 
+  // Process real-time data and append to chart
   useEffect(() => {
-    // Initialize socket connection
-    const newSocket = io(API_BASE_URL);
-    setSocket(newSocket);
-
-    // Socket event handlers for real-time updates
-    newSocket.on('power-flow-update', (newData) => {
-      // Smooth real-time update without glitches
+    if (powerFlowData && powerFlowData.timestamp) {
+      // Use timestamp as unique identifier since batchId is undefined
+      const uniqueId = powerFlowData.timestamp.toString();
+      
+      // Check if we've already processed this timestamp
+      if (lastProcessedBatchId === uniqueId) {
+        return;
+      }
+      
       setData(prevData => {
-        if (prevData.length === 0) return [newData];
+        // Check if this is a new data point using timestamp
+        const existingTimestamps = new Set(prevData.map(d => d.timestamp?.toString()));
+        if (existingTimestamps.has(uniqueId)) {
+          return prevData;
+        }
         
-        // Check if this is a new data point
-        const existingBatchIds = new Set(prevData.map(d => d.batchId));
-        if (existingBatchIds.has(newData.batchId)) return prevData;
+        // Create new data point with proper formatting
+        const newDataPoint = {
+          ts: new Date(powerFlowData.timestamp || powerFlowData.time || Date.now()),
+          pv: parseFloat(powerFlowData.solar) || 0,
+          genset: parseFloat(powerFlowData.genset) || 0,
+          load: parseFloat(powerFlowData.load) || 0,
+          grid: parseFloat(powerFlowData.grid) || 0,
+          batchId: uniqueId, // Use timestamp as batchId
+          timestamp: powerFlowData.timestamp // Store original timestamp
+        };
         
-        // Add new data point smoothly
-        const updatedData = [...prevData, {
-          ...newData,
-          ts: new Date(newData.timestamp || Date.now())
-        }];
+        if (prevData.length === 0) {
+          setLastProcessedBatchId(uniqueId);
+          return [newDataPoint];
+        }
+        
+        // Smoothly append new data point to the end without re-rendering entire chart
+        // Use functional update to prevent unnecessary re-renders
+        const updatedData = [...prevData, newDataPoint];
         
         // Maintain optimal data size for smooth performance
+        // For 10 minutes: show up to 120 points (every 5 seconds)
+        // For 2 hours: show up to 1440 points (every 5 seconds)
         const maxPoints = Math.min(selectedHours * 720, updatedData.length);
-        return updatedData.slice(-maxPoints);
+        const finalData = updatedData.slice(-maxPoints);
+        
+        // Update the last processed timestamp
+        setLastProcessedBatchId(uniqueId);
+        
+        // Return the same array reference if no change needed (prevents re-render)
+        if (finalData.length === prevData.length && 
+            finalData[finalData.length - 1]?.timestamp === prevData[prevData.length - 1]?.timestamp) {
+          return prevData;
+        }
+        
+        return finalData;
       });
-    });
+    }
+  }, [powerFlowData, selectedHours, lastProcessedBatchId]);
 
-    // Fetch initial data
+  useEffect(() => {
+    // Fetch initial data ONLY ONCE when component mounts
     const loadInitialData = async () => {
       setIsLoading(true);
       try {
         const initialData = await fetchPowerFlowData(selectedHours);
+        
         setData(initialData);
         
         // Calculate night areas
@@ -199,44 +241,38 @@ const PowerFlowLast24h = () => {
       }
     };
 
+    // Load initial data once
     loadInitialData();
-
-    // Fallback polling every 10 seconds (only if socket fails)
-    const fallbackInterval = setInterval(async () => {
-      try {
-        const updatedData = await fetchPowerFlowData(selectedHours);
-        
-        // Only update if we have new data
-        setData(prevData => {
-          if (prevData.length === 0) return updatedData;
-          
-          const existingBatchIds = new Set(prevData.map(d => d.batchId));
-          const newDataPoints = updatedData.filter(d => !existingBatchIds.has(d.batchId));
-          
-          if (newDataPoints.length === 0) return prevData;
-          
-          const mergedData = [...prevData, ...newDataPoints];
-          const maxPoints = Math.min(selectedHours * 720, mergedData.length);
-          return mergedData.slice(-maxPoints);
-        });
-      } catch (error) {
-        console.error('Fallback polling error:', error);
-      }
-    }, 10000);
-
-    return () => {
-      clearInterval(fallbackInterval);
-      if (newSocket) {
-        newSocket.off('power-flow-update');
-        newSocket.disconnect();
-      }
-    };
-  }, [selectedHours]);
+  }, []); // Only run once when component mounts
 
   // Handle time range change with smooth transitions
   const handleTimeRangeChange = async (hours) => {
     setSelectedHours(hours);
     setIsDropdownOpen(false);
+    
+    // Check if we already have enough data for the new time range
+    const requiredDataPoints = hours * 720; // 720 data points per hour (5-second intervals)
+    const currentDataPoints = data.length;
+    
+    if (currentDataPoints >= requiredDataPoints) {
+      // Just recalculate night areas with existing data
+      const a = [];
+      let start = null;
+      data.forEach((p, i) => {
+        const h = p.ts.getHours();
+        const night = h >= 20 || h < 6;
+        if (night && start === null) start = i;
+        if (!night && start !== null) {
+          a.push({ x1: data[start].ts.getTime(), x2: data[i - 1].ts.getTime() });
+          start = null;
+        }
+      });
+      if (start !== null) a.push({ x1: data[start].ts.getTime(), x2: data[data.length - 1].ts.getTime() });
+      setNightAreas(a);
+      return;
+    }
+    
+    // Only fetch new data if we don't have enough
     setIsLoading(true);
     
     try {
@@ -264,7 +300,7 @@ const PowerFlowLast24h = () => {
           start = null;
         }
       });
-      if (start !== null) a.push({ x1: newData[start].ts.getTime(), x2: newData[newData.length - 1].ts.getTime() });
+      if (start !== null) a.push({ x1: newData[start].ts.getTime(), x2: newData[data.length - 1].ts.getTime() });
       setNightAreas(a);
     } catch (error) {
       console.error('Error changing time range:', error);
@@ -298,7 +334,7 @@ const PowerFlowLast24h = () => {
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0097b2] mx-auto mb-4"></div>
             <p className="text-gray-600 font-medium">Loading Power Flow Data...</p>
-            <p className="text-sm text-gray-500 mt-2">Fetching 24-hour historical data</p>
+            <p className="text-sm text-gray-500 mt-2">Fetching 10-minute historical data</p>
           </div>
         </div>
       </div>
@@ -324,13 +360,15 @@ const PowerFlowLast24h = () => {
           <div className="relative dropdown-container">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white border-0 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 text-sm font-semibold hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+              className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm hover:bg-white/90 transition-all duration-200"
             >
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>Last {selectedHours} {selectedHours === 1 ? 'Hour' : 'Hours'}</span>
-              <svg className={`w-4 h-4 text-white transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span className="text-sm font-medium text-gray-700">
+                {timeRangeOptions.find(opt => opt.value === selectedHours)?.label || '10 min'}
+              </span>
+              <svg className={`w-4 h-4 text-gray-600 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -339,18 +377,18 @@ const PowerFlowLast24h = () => {
             {isDropdownOpen && (
               <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden">
                 <div className="py-1">
-                  {[1, 2, 3, 4, 6, 8, 12, 18, 24].map((hours) => (
+                  {timeRangeOptions.map((option) => (
                     <button
-                      key={hours}
-                      onClick={() => handleTimeRangeChange(hours)}
+                      key={option.value}
+                      onClick={() => handleTimeRangeChange(option.value)}
                       className={`w-full px-4 py-2 text-left text-sm transition-all duration-200 flex items-center justify-between group ${
-                        selectedHours === hours 
+                        selectedHours === option.value 
                           ? 'bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white shadow-md' 
                           : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100'
                       }`}
                     >
-                      <span className="font-medium">Last {hours} {hours === 1 ? 'Hour' : 'Hours'}</span>
-                      {selectedHours === hours ? (
+                      <span className="font-medium">{option.label}</span>
+                      {selectedHours === option.value ? (
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
@@ -368,23 +406,23 @@ const PowerFlowLast24h = () => {
             )}
           </div>
           
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-gray-600 font-medium">Live Data</span>
-            </div>
-      
+          {/* Socket Status Indicator */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-white/60 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
+            <div className={`w-2 h-2 rounded-full ${powerFlowData ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+            <span className="text-xs text-gray-600">
+              {powerFlowData ? 'Live' : 'Waiting for Data'}
+            </span>
           </div>
         </div>
       </div>
 
       {/* Chart */}
-      <div className="flex-grow rounded-xl border border-gray-200 p-2 min-h-0 bg-white transition-all duration-500">
+      <div className="flex-grow rounded-xl border border-gray-200 p-2 min-h-0 bg-white transition-all duration-300 ease-in-out">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart 
-            data={data} 
-            margin={{ top: 8, right: 10, left: 24, bottom: 16 }}
-            animationDuration={300}
+            data={data}
+            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            animationDuration={150}
             animationEasing="ease-out"
           >
             {/* Night shading */}
@@ -407,7 +445,7 @@ const PowerFlowLast24h = () => {
               tickFormatter={formatXAxisTick}
               tick={{ fontSize: 11, fill: "#374151", fontWeight: 600 }}
               axisLine={{ stroke: "#6b7280", strokeWidth: 1 }}
-              tickLine={{ stroke: "#6b7280", strokeWidth: 1 }}
+              tickLine={{ stroke: "#7b7280", strokeWidth: 1 }}
               interval="preserveStartEnd"
               minTickGap={40}
             />
@@ -425,75 +463,52 @@ const PowerFlowLast24h = () => {
             />
 
             {/* Lines */}
-            <defs>
-              <linearGradient id="pvGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#d97706" />
-                <stop offset="50%" stopColor="#f59e0b" />
-                <stop offset="100%" stopColor="#d97706" />
-              </linearGradient>
-              <linearGradient id="loadGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#2563eb" />
-                <stop offset="50%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#2563eb" />
-              </linearGradient>
-              <linearGradient id="gensetGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#dc2626" />
-                <stop offset="50%" stopColor="#ef4444" />
-                <stop offset="100%" stopColor="#dc2626" />
-              </linearGradient>
-              <linearGradient id="gridPowerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#0891b2" />
-                <stop offset="50%" stopColor="#06b6d4" />
-                <stop offset="100%" stopColor="#0891b2" />
-              </linearGradient>
-            </defs>
-
-            <Line
-              type="monotone"
-              dataKey="pv"
+            {/* Power Flow Lines */}
+            <Line 
+              type="monotone" 
+              dataKey="pv" 
               name="Solar Generation"
-              stroke="url(#pvGradient)"
-              strokeWidth={1.8}
+              stroke="#f59e0b" 
+              strokeWidth={1.5}
               dot={false}
-              activeDot={{ r: 5, fill: "#f59e0b", stroke: "#fff", strokeWidth: 2 }}
-              animationDuration={200}
+              activeDot={{ r: 4, fill: "#f59e0b" }}
+              animationDuration={150}
               animationEasing="ease-out"
               isAnimationActive={true}
             />
-            <Line
-              type="monotone"
-              dataKey="load"
-              name="Load Demand"
-              stroke="url(#loadGradient)"
-              strokeWidth={1.8}
-              dot={false}
-              activeDot={{ r: 5, fill: "#3b82f6", stroke: "#fff", strokeWidth: 2 }}
-              animationDuration={200}
-              animationEasing="ease-out"
-              isAnimationActive={true}
-            />
-            <Line
-              type="monotone"
-              dataKey="genset"
-              name="Generator Output"
-              stroke="url(#gensetGradient)"
-              strokeWidth={1.8}
-              dot={false}
-              activeDot={{ r: 5, fill: "#ef4444", stroke: "#fff", strokeWidth: 2 }}
-              animationDuration={200}
-              animationEasing="ease-out"
-              isAnimationActive={true}
-            />
-            <Line
-              type="monotone"
-              dataKey="grid"
+            <Line 
+              type="monotone" 
+              dataKey="grid" 
               name="Grid Exchange"
-              stroke="url(#gridPowerGradient)"
-              strokeWidth={1.8}
-              strokeDasharray="8 4"
+              stroke="#3b82f6" 
+              strokeWidth={1.5}
               dot={false}
-              activeDot={{ r: 5, fill: "#06b6d6", stroke: "#fff", strokeWidth: 2 }}
-              animationDuration={200}
+              activeDot={{ r: 4, fill: "#3b82f6" }}
+              animationDuration={150}
+              animationEasing="ease-out"
+              isAnimationActive={true}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="genset" 
+              name="Generator Output"
+              stroke="#10b981" 
+              strokeWidth={1.5}
+              dot={false}
+              activeDot={{ r: 4, fill: "#10b981" }}
+              animationDuration={150}
+              animationEasing="ease-out"
+              isAnimationActive={true}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="load" 
+              name="Load Demand"
+              stroke="#ef4444" 
+              strokeWidth={1.5}
+              dot={false}
+              activeDot={{ r: 4, fill: "#ef4444" }}
+              animationDuration={150}
               animationEasing="ease-out"
               isAnimationActive={true}
             />
