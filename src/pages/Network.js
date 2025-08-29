@@ -145,7 +145,7 @@ const Network = () => {
   const [vendors, setVendors] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState('');
   const [vendorReferences, setVendorReferences] = useState([]);
-  const [fullReferencesData, setFullReferencesData] = useState([]);
+  const [fullReferencesData, setFullReferencesData] = useState({});
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [deviceModals, setDeviceModals] = useState({
     eth1: { open: false, mode: 'add', data: null, originalName: null },
@@ -346,20 +346,29 @@ const Network = () => {
       setDevicesByInterface(mappedDevices);
       
       // Handle new vendor-based references structure
-      if (data.references && Array.isArray(data.references)) {
-        const vendorList = data.references.map(vendor => vendor.vendor);
-        setVendors(vendorList);
+      if (data.references && typeof data.references === 'object') {
+        // New format: references is an object with device types as keys
         setFullReferencesData(data.references);
         
+        // Extract vendors from the new format
+        const vendorSet = new Set();
+        Object.values(data.references).forEach(deviceInfo => {
+          if (deviceInfo && deviceInfo.device_vendor) {
+            vendorSet.add(deviceInfo.device_vendor);
+          }
+        });
+        const vendorList = Array.from(vendorSet).sort();
+        setVendors(vendorList);
+        
         // Extract all references for backward compatibility
-        const allReferences = data.references.flatMap(vendor => 
-          Array.isArray(vendor.references) ? vendor.references.map(ref => ref.reference) : []
-        );
+        const allReferences = Object.values(data.references)
+          .filter(deviceInfo => deviceInfo && deviceInfo.reference)
+          .map(deviceInfo => deviceInfo.reference);
         setReferences(allReferences);
       } else {
         setVendors([]);
         setReferences([]);
-        setFullReferencesData([]);
+        setFullReferencesData({});
       }
     } catch (e) {
       notifyError('Error fetching devices: ' + e.message);
@@ -390,12 +399,62 @@ const Network = () => {
     notifySuccess('Connectivity status refreshed');
   };
 
+  // Get device type for a reference
+  const getDeviceTypeForReference = (reference) => {
+    if (!reference || !fullReferencesData) return null;
+    
+    for (const [deviceType, deviceInfo] of Object.entries(fullReferencesData)) {
+      if (deviceInfo && deviceInfo.reference === reference) {
+        return deviceType;
+      }
+    }
+    return null;
+  };
+
   // Get references for selected vendor
   const getReferencesForVendor = (vendorName) => {
-    if (!vendorName || !Array.isArray(fullReferencesData)) return [];
+    if (!vendorName || !fullReferencesData || typeof fullReferencesData !== 'object') return [];
     
-    const vendorData = fullReferencesData.find(v => v.vendor === vendorName);
-    return vendorData && Array.isArray(vendorData.references) ? vendorData.references.map(ref => ref.reference) : [];
+    // Extract references for the selected vendor from the new API format
+    const vendorReferences = [];
+    Object.entries(fullReferencesData).forEach(([deviceType, deviceInfo]) => {
+      if (deviceInfo && deviceInfo.device_vendor === vendorName) {
+        vendorReferences.push({
+          reference: deviceInfo.reference,
+          device_type: deviceType,
+          protocol: deviceInfo.protocol
+        });
+      }
+    });
+    
+    return vendorReferences;
+  };
+
+  // Check if a reference is a power meter device
+  const isPowerMeterDevice = (reference) => {
+    if (!reference || !fullReferencesData) return false;
+    
+    // Find the device type for this reference
+    for (const [deviceType, deviceInfo] of Object.entries(fullReferencesData)) {
+      if (deviceInfo && deviceInfo.reference === reference) {
+        return deviceType === 'power_meter';
+      }
+    }
+    return false;
+  };
+
+  // Get vendors from the new API format
+  const getVendors = () => {
+    if (!fullReferencesData) return [];
+    
+    const vendorSet = new Set();
+    Object.values(fullReferencesData).forEach(deviceInfo => {
+      if (deviceInfo && deviceInfo.device_vendor) {
+        vendorSet.add(deviceInfo.device_vendor);
+      }
+    });
+    
+    return Array.from(vendorSet).sort();
   };
 
   // Handle vendor selection
@@ -599,14 +658,22 @@ const Network = () => {
   };
 
   const openEditDeviceModal = (iface, device) => {
-    // Find the vendor for this device's reference
-    const vendorForReference = Array.isArray(fullReferencesData) ? fullReferencesData.find(vendor => 
-      Array.isArray(vendor.references) && vendor.references.some(ref => ref.reference === device.reference)
-    ) : null;
+    // Find the vendor for this device's reference using the new API format
+    let vendorForReference = null;
     
-    if (vendorForReference && Array.isArray(vendorForReference.references)) {
-      setSelectedVendor(vendorForReference.vendor);
-      setVendorReferences(vendorForReference.references.map(ref => ref.reference));
+    if (fullReferencesData && typeof fullReferencesData === 'object') {
+      // Find the device info for this reference
+      for (const [deviceType, deviceInfo] of Object.entries(fullReferencesData)) {
+        if (deviceInfo && deviceInfo.reference === device.reference) {
+          vendorForReference = deviceInfo.device_vendor;
+          break;
+        }
+      }
+    }
+    
+    if (vendorForReference) {
+      setSelectedVendor(vendorForReference);
+      setVendorReferences(getReferencesForVendor(vendorForReference));
     } else {
       setSelectedVendor('');
       setVendorReferences([]);
@@ -1009,6 +1076,35 @@ const Network = () => {
       '/dev/ttyS5': 'Serial 2'
     };
     return displayNames[ifaceKey] || ifaceKey;
+  };
+
+  // Get protocol for a reference
+  const getProtocolForReference = (reference) => {
+    if (!reference || !fullReferencesData) return '';
+    
+    for (const [deviceType, deviceInfo] of Object.entries(fullReferencesData)) {
+      if (deviceInfo && deviceInfo.reference === reference) {
+        return deviceInfo.protocol || '';
+      }
+    }
+    return '';
+  };
+
+  // Handle reference selection
+  const handleReferenceChange = (reference, ifaceKey) => {
+    const protocol = getProtocolForReference(reference);
+    
+    setDeviceModals((prev) => ({ 
+      ...prev, 
+      [ifaceKey]: { 
+        ...prev[ifaceKey], 
+        data: { 
+          ...prev[ifaceKey].data, 
+          reference: reference,
+          protocol: protocol
+        } 
+      } 
+    }));
   };
 
   return (
@@ -1559,7 +1655,7 @@ const Network = () => {
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200"
                 >
                   <option value="">Select vendor…</option>
-                  {Array.isArray(vendors) && vendors.map((vendor) => (
+                  {getVendors().map((vendor) => (
                     <option key={vendor} value={vendor}>{vendor}</option>
                   ))}
                 </select>
@@ -1570,7 +1666,7 @@ const Network = () => {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Reference</label>
                 <select
                       value={d.reference || ''} 
-                      onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, reference: e.target.value } } }))} 
+                      onChange={(e) => handleReferenceChange(e.target.value, ifaceKey)} 
                       disabled={!selectedVendor}
                       className={`w-full border border-gray-300 rounded-lg px-4 py-3 text-sm transition-colors duration-200 ${
                         selectedVendor 
@@ -1581,19 +1677,21 @@ const Network = () => {
                       <option value="" disabled>
                         {selectedVendor ? 'Select reference…' : 'Select vendor first…'}
                       </option>
-                      {Array.isArray(vendorReferences) && vendorReferences.map((r) => (
-                        <option key={r} value={r}>{r}</option>
+                      {Array.isArray(vendorReferences) && vendorReferences.map((ref) => (
+                        <option key={ref.reference} value={ref.reference}>
+                          {ref.reference} ({ref.device_type})
+                        </option>
                       ))}
                 </select>
               </div>
               
               {/* Conditional Role field for Power Meter devices */}
-              {d.reference && d.reference.toLowerCase().startsWith('power_meter-model') && (
+              {d.reference && isPowerMeterDevice(d.reference) && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Role</label>
                   <select
                     value={d.role || ''} 
-                    onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...d, role: e.target.value } } }))} 
+                    onChange={(e) => setDeviceModals((prev) => ({ ...prev, [ifaceKey]: { ...prev[ifaceKey], data: { ...prev[ifaceKey].data, role: e.target.value } } }))} 
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-[#0097b2] focus:border-[#0097b2] transition-colors duration-200"
                   >
                     <option value="">Select role…</option>
