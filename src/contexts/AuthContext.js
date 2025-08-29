@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('authToken', authToken);
         setToken(authToken);
         setIsAuthenticated(true);
-        toast.success('🔐 Login successful! Welcome to the system.');
+        // toast.success('🔐 Login successful! Welcome to the system.');
         return { success: true };
       } else {
         toast.error(response.message || 'Login failed');

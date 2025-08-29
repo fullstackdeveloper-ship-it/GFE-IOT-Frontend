@@ -54,46 +54,47 @@ const CustomTooltip = ({ active, payload }) => {
   });
 
   const rows = [
-    { key: "pv", label: "Solar Generation", color: "#f59e0b", icon: "☀️" },
-    { key: "load", label: "Load Demand", color: "#3b82f6", icon: "⚡" },
-    { key: "genset", label: "Generator Output", color: "#ef4444", icon: "🔧" },
+    { key: "pv", label: "Solar Generation", color: "#f59e0b" },
+    { key: "load", label: "Load Demand", color: "#3b82f6" },
+    { key: "genset", label: "Generator Output", color: "#ef4444" },
     {
       key: "grid",
       label: d.grid >= 0 ? "Grid Import" : "Grid Export",
-      color: d.grid >= 0 ? "#06b6d4" : "#10b981",
-      icon: d.grid >= 0 ? "📥" : "📤"
+      color: d.grid >= 0 ? "#06b6d4" : "#10b981"
     },
   ];
 
   return (
     <div
-      className="rounded-xl border border-gray-200 shadow-2xl"
+      className="rounded-2xl border-0 shadow-2xl"
       style={{
-        background: "rgba(255, 255, 255, 0.98)",
-        backdropFilter: "blur(10px)",
-        minWidth: 280,
-        maxWidth: 320,
-        padding: "12px 16px",
-        boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+        background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)",
+        backdropFilter: "blur(20px)",
+        minWidth: 300,
+        maxWidth: 350,
+        padding: "16px 20px",
+        boxShadow: "0 25px 50px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.1)",
+        border: "1px solid rgba(255,255,255,0.2)",
       }}
     >
-      {/* Header */}
+            {/* Header */}
       <div
         style={{
-          marginBottom: 8,
-          paddingBottom: 8,
-          borderBottom: "2px solid #e5e7eb",
+          marginBottom: 12,
+          paddingBottom: 12,
+          borderBottom: "2px solid rgba(0, 151, 178, 0.2)",
+          position: "relative"
         }}
       >
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 3 }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: "#0097b2", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>
           Power Flow Analysis
         </div>
-        <div style={{ fontSize: 11, color: "#6b7280", fontWeight: 500 }}>{dt}</div>
-        <div style={{ fontSize: 10, color: "#9ca3af" }}>Batch: {d.batchId}</div>
+        <div style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>{dt}</div>
+        <div style={{ position: "absolute", top: 0, right: 0, width: "40px", height: "2px", background: "linear-gradient(90deg, #0097b2, #198c1a)", borderRadius: "1px" }} />
       </div>
 
-      {/* Series values with icons */}
-      <div style={{ display: "grid", gap: 6 }}>
+      {/* Series values - super clean */}
+      <div style={{ display: "grid", gap: 8 }}>
         {rows.map((r) => (
           <div
             key={r.key}
@@ -101,18 +102,26 @@ const CustomTooltip = ({ active, payload }) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "8px 10px",
-              borderRadius: 8,
-              background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
-              border: "1px solid #e2e8f0",
-              transition: "all 0.2s ease",
+              padding: "12px 16px",
+              borderRadius: 12,
+              background: "linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(248,250,252,0.8) 100%)",
+              border: "1px solid rgba(226, 232, 240, 0.6)",
+              transition: "all 0.3s ease",
+              position: "relative",
+              overflow: "hidden",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,0,0,0.15)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "none";
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 14 }}>{r.icon}</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{r.label}</span>
-            </div>
-            <span style={{ fontSize: 12, fontWeight: 700, color: r.color }}>
+            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "4px", background: r.color, borderRadius: "0 2px 2px 0" }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginLeft: "8px" }}>{r.label}</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: r.color, textShadow: "0 1px 2px rgba(0,0,0,0.1)" }}>
               {Math.abs(d[r.key]).toFixed(1)} kW
             </span>
           </div>
@@ -140,51 +149,128 @@ const PowerFlowLast24h = () => {
     const newSocket = io(API_BASE_URL);
     setSocket(newSocket);
 
+    // Socket event handlers for real-time updates
+    newSocket.on('power-flow-update', (newData) => {
+      // Smooth real-time update without glitches
+      setData(prevData => {
+        if (prevData.length === 0) return [newData];
+        
+        // Check if this is a new data point
+        const existingBatchIds = new Set(prevData.map(d => d.batchId));
+        if (existingBatchIds.has(newData.batchId)) return prevData;
+        
+        // Add new data point smoothly
+        const updatedData = [...prevData, {
+          ...newData,
+          ts: new Date(newData.timestamp || Date.now())
+        }];
+        
+        // Maintain optimal data size for smooth performance
+        const maxPoints = Math.min(selectedHours * 720, updatedData.length);
+        return updatedData.slice(-maxPoints);
+      });
+    });
+
     // Fetch initial data
     const loadInitialData = async () => {
       setIsLoading(true);
-      const initialData = await fetchPowerFlowData(selectedHours);
-      setData(initialData);
-      
-      // Calculate night areas
-      const a = [];
-      let start = null;
-      initialData.forEach((p, i) => {
-        const h = p.ts.getHours();
-        const night = h >= 20 || h < 6;
-        if (night && start === null) start = i;
-        if (!night && start !== null) {
-          a.push({ x1: initialData[start].ts.getTime(), x2: initialData[i - 1].ts.getTime() });
-          start = null;
-        }
-      });
-      if (start !== null) a.push({ x1: initialData[start].ts.getTime(), x2: initialData[initialData.length - 1].ts.getTime() });
-      setNightAreas(a);
-      setIsLoading(false);
+      try {
+        const initialData = await fetchPowerFlowData(selectedHours);
+        setData(initialData);
+        
+        // Calculate night areas
+        const a = [];
+        let start = null;
+        initialData.forEach((p, i) => {
+          const h = p.ts.getHours();
+          const night = h >= 20 || h < 6;
+          if (night && start === null) start = i;
+          if (!night && start !== null) {
+            a.push({ x1: initialData[start].ts.getTime(), x2: initialData[i - 1].ts.getTime() });
+            start = null;
+          }
+        });
+        if (start !== null) a.push({ x1: initialData[start].ts.getTime(), x2: initialData[initialData.length - 1].ts.getTime() });
+        setNightAreas(a);
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadInitialData();
 
-    // Real-time updates every 5 seconds
-    const interval = setInterval(async () => {
-      const updatedData = await fetchPowerFlowData(selectedHours);
-      setData(updatedData);
-    }, 5000);
+    // Fallback polling every 10 seconds (only if socket fails)
+    const fallbackInterval = setInterval(async () => {
+      try {
+        const updatedData = await fetchPowerFlowData(selectedHours);
+        
+        // Only update if we have new data
+        setData(prevData => {
+          if (prevData.length === 0) return updatedData;
+          
+          const existingBatchIds = new Set(prevData.map(d => d.batchId));
+          const newDataPoints = updatedData.filter(d => !existingBatchIds.has(d.batchId));
+          
+          if (newDataPoints.length === 0) return prevData;
+          
+          const mergedData = [...prevData, ...newDataPoints];
+          const maxPoints = Math.min(selectedHours * 720, mergedData.length);
+          return mergedData.slice(-maxPoints);
+        });
+      } catch (error) {
+        console.error('Fallback polling error:', error);
+      }
+    }, 10000);
 
     return () => {
-      clearInterval(interval);
-      if (newSocket) newSocket.disconnect();
+      clearInterval(fallbackInterval);
+      if (newSocket) {
+        newSocket.off('power-flow-update');
+        newSocket.disconnect();
+      }
     };
   }, [selectedHours]);
 
-  // Handle time range change
+  // Handle time range change with smooth transitions
   const handleTimeRangeChange = async (hours) => {
     setSelectedHours(hours);
     setIsDropdownOpen(false);
     setIsLoading(true);
-    const newData = await fetchPowerFlowData(hours);
-    setData(newData);
-    setIsLoading(false);
+    
+    try {
+      const newData = await fetchPowerFlowData(hours);
+      
+      // Smooth transition by keeping some old data initially
+      setData(prevData => {
+        if (prevData.length > 0) {
+          // Keep last few points for smooth transition
+          const transitionData = [...prevData.slice(-3), ...newData];
+          return transitionData;
+        }
+        return newData;
+      });
+      
+      // Recalculate night areas for new time range
+      const a = [];
+      let start = null;
+      newData.forEach((p, i) => {
+        const h = p.ts.getHours();
+        const night = h >= 20 || h < 6;
+        if (night && start === null) start = i;
+        if (!night && start !== null) {
+          a.push({ x1: newData[start].ts.getTime(), x2: newData[i - 1].ts.getTime() });
+          start = null;
+        }
+      });
+      if (start !== null) a.push({ x1: newData[start].ts.getTime(), x2: newData[newData.length - 1].ts.getTime() });
+      setNightAreas(a);
+    } catch (error) {
+      console.error('Error changing time range:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Close dropdown when clicking outside
@@ -238,34 +324,42 @@ const PowerFlowLast24h = () => {
           <div className="relative dropdown-container">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 text-sm font-medium text-gray-700 hover:border-[#0097b2] focus:outline-none focus:ring-2 focus:ring-[#0097b2] focus:ring-opacity-50"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white border-0 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 text-sm font-semibold hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
             >
-              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>Last {selectedHours} {selectedHours === 1 ? 'Hour' : 'Hours'}</span>
-              <svg className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-4 h-4 text-white transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             
             {/* Dropdown Menu */}
             {isDropdownOpen && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden">
                 <div className="py-1">
                   {[1, 2, 3, 4, 6, 8, 12, 18, 24].map((hours) => (
                     <button
                       key={hours}
                       onClick={() => handleTimeRangeChange(hours)}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors duration-150 flex items-center justify-between ${
-                        selectedHours === hours ? 'bg-[#0097b2] text-white hover:bg-[#0088a3]' : 'text-gray-700'
+                      className={`w-full px-4 py-2 text-left text-sm transition-all duration-200 flex items-center justify-between group ${
+                        selectedHours === hours 
+                          ? 'bg-gradient-to-r from-[#0097b2] to-[#198c1a] text-white shadow-md' 
+                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100'
                       }`}
                     >
-                      <span>Last {hours} {hours === 1 ? 'Hour' : 'Hours'}</span>
-                      {selectedHours === hours && (
+                      <span className="font-medium">Last {hours} {hours === 1 ? 'Hour' : 'Hours'}</span>
+                      {selectedHours === hours ? (
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
+                      ) : (
+                        <div className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <svg className="w-4 h-4 text-[#0097b2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       )}
                     </button>
                   ))}
@@ -285,9 +379,14 @@ const PowerFlowLast24h = () => {
       </div>
 
       {/* Chart */}
-      <div className="flex-grow rounded-xl border border-gray-200 p-2 min-h-0 bg-white">
+      <div className="flex-grow rounded-xl border border-gray-200 p-2 min-h-0 bg-white transition-all duration-500">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 10, left: 24, bottom: 16 }}>
+          <LineChart 
+            data={data} 
+            margin={{ top: 8, right: 10, left: 24, bottom: 16 }}
+            animationDuration={300}
+            animationEasing="ease-out"
+          >
             {/* Night shading */}
             {nightAreas.map((ar, i) => (
               <ReferenceArea key={i} x1={ar.x1} x2={ar.x2} fill="#e5e7eb" fillOpacity={0.35} />
@@ -354,37 +453,49 @@ const PowerFlowLast24h = () => {
               dataKey="pv"
               name="Solar Generation"
               stroke="url(#pvGradient)"
-              strokeWidth={1.5}
+              strokeWidth={1.8}
               dot={false}
-              activeDot={{ r: 4, fill: "#f59e0b", stroke: "#fff", strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: "#f59e0b", stroke: "#fff", strokeWidth: 2 }}
+              animationDuration={200}
+              animationEasing="ease-out"
+              isAnimationActive={true}
             />
             <Line
               type="monotone"
               dataKey="load"
               name="Load Demand"
               stroke="url(#loadGradient)"
-              strokeWidth={1.5}
+              strokeWidth={1.8}
               dot={false}
-              activeDot={{ r: 4, fill: "#3b82f6", stroke: "#fff", strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: "#3b82f6", stroke: "#fff", strokeWidth: 2 }}
+              animationDuration={200}
+              animationEasing="ease-out"
+              isAnimationActive={true}
             />
             <Line
               type="monotone"
               dataKey="genset"
               name="Generator Output"
               stroke="url(#gensetGradient)"
-              strokeWidth={1.5}
+              strokeWidth={1.8}
               dot={false}
-              activeDot={{ r: 4, fill: "#ef4444", stroke: "#fff", strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: "#ef4444", stroke: "#fff", strokeWidth: 2 }}
+              animationDuration={200}
+              animationEasing="ease-out"
+              isAnimationActive={true}
             />
             <Line
               type="monotone"
               dataKey="grid"
               name="Grid Exchange"
               stroke="url(#gridPowerGradient)"
-              strokeWidth={1.5}
+              strokeWidth={1.8}
               strokeDasharray="8 4"
               dot={false}
-              activeDot={{ r: 4, fill: "#06b6d4", stroke: "#fff", strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: "#06b6d6", stroke: "#fff", strokeWidth: 2 }}
+              animationDuration={200}
+              animationEasing="ease-out"
+              isAnimationActive={true}
             />
 
             <Tooltip content={<CustomTooltip />} />
