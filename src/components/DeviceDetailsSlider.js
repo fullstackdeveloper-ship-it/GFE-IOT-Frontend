@@ -317,29 +317,11 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
     }
     
     return (
-      <div className="relative">
-        <span className={`text-sm font-mono px-3 py-2 rounded-lg border min-w-[120px] text-center inline-block transition-all duration-300 ${
-          hasLiveValue 
-            ? isDataUpdating 
-              ? 'text-blue-700 bg-blue-50 border-blue-300 shadow-md transform scale-105' 
-              : 'text-emerald-700 bg-emerald-50 border-emerald-300 shadow-sm'
-            : 'text-gray-600 bg-gray-50 border-gray-200'
-        }`}>
-          {display}
-        </span>
-        {/* Elegant animated indicator for live values */}
-        {hasLiveValue && isDataUpdating && (
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-ping shadow-lg shadow-blue-500/50"></div>
-        )}
-        {/* Subtle glow effect for live values */}
-        {hasLiveValue && (
-          <div className={`absolute inset-0 rounded-lg border transition-all duration-300 ${
-            isDataUpdating 
-              ? 'border-blue-400 shadow-lg shadow-blue-400/25' 
-              : 'border-emerald-400 shadow-sm shadow-emerald-400/20'
-          }`}></div>
-        )}
-      </div>
+      <span className={`text-sm font-mono ${
+        hasLiveValue ? 'text-emerald-700' : 'text-gray-600'
+      }`}>
+        {display}
+      </span>
     );
   };
 
@@ -380,30 +362,6 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
               transform: translateX(0);
             }
           }
-          
-          @keyframes valueUpdate {
-            0% {
-              transform: scale(1);
-            }
-            50% {
-              transform: scale(1.05);
-            }
-            100% {
-              transform: scale(1);
-            }
-          }
-          
-          @keyframes dataPulse {
-            0% {
-              box-shadow: 0 0 0 0 rgba(0, 151, 178, 0.4);
-            }
-            70% {
-              box-shadow: 0 0 0 10px rgba(0, 151, 178, 0);
-            }
-            100% {
-              box-shadow: 0 0 0 0 rgba(0, 151, 178, 0);
-            }
-          }
         `}
       </style>
       
@@ -436,14 +394,14 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
                           isDataUpdating 
-                            ? 'bg-yellow-400 animate-ping shadow-lg shadow-yellow-400/50' 
-                            : 'bg-green-400 animate-pulse shadow-md shadow-green-400/30'
+                            ? 'bg-yellow-400 shadow-lg shadow-yellow-400/50' 
+                            : 'bg-green-400 shadow-md shadow-green-400/30'
                         }`}></div>
                         <span className="text-xs text-green-100 font-medium">
                           {lastUpdateTime.toLocaleTimeString()}
                         </span>
                         {isDataUpdating && (
-                          <span className="text-xs text-yellow-100 font-medium animate-pulse">
+                          <span className="text-xs text-yellow-100 font-medium">
                             Live
                           </span>
                         )}
@@ -531,11 +489,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
                       <p className="text-gray-500 text-sm">Try adjusting your search terms.</p>
                     </div>
                   ) : (
-                    <div className={`bg-white rounded-xl border overflow-hidden shadow-sm transition-all duration-300 ${
-                      isDataUpdating 
-                        ? 'border-blue-200 shadow-md shadow-blue-200/20' 
-                        : 'border-gray-200 shadow-sm'
-                    }`}>
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                       <div className="overflow-x-auto">
                         <table className="min-w-full">
                           <thead className="bg-gradient-to-r from-[#0097b2] to-[#198c1a] border-b border-[#0097b2]">
