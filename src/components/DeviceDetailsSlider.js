@@ -311,7 +311,7 @@ const DeviceDetailsSlider = ({ device, isOpen, onClose }) => {
     // Only show value with unit if there's an actual value
     let display;
     if (hasLiveValue) {
-      display = `${val}${unit !== '—' ? unit : ''}`;
+      display = `${val}${unit !== '—' ? ` ${unit}` : ''}`; 
     } else {
       display = '—';
     }
