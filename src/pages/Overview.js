@@ -2,12 +2,13 @@
 import React from 'react';
 import FlowKPI from '../components/FlowKPI.jsx';
 import PowerFlowLast24h from '../components/PowerFlowLast24h.jsx';
+import ActivePowerChart from '../components/ActivePowerChart.jsx';
 
 const Overview = () => {
   return (
     <div className="min-h-screen bg-white p-6">
-      {/* 40% / 60% split; equal heights */}
-      <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-stretch">
+      {/* First row: 40% / 60% split */}
+      <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-stretch mb-6">
         {/* 40% */}
         <div className="lg:col-span-4">
           <div className="h-[520px] rounded-xl border border-[#198c1a]/15 shadow-xl shadow-[#198c1a]/5 bg-white p-4 flex flex-col overflow-hidden">
@@ -26,6 +27,11 @@ const Overview = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Second row: Full width ActivePowerChart */}
+      <div className="w-full">
+        <ActivePowerChart />
       </div>
     </div>
   );
