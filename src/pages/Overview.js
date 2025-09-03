@@ -2,7 +2,7 @@
 import React from 'react';
 import FlowKPI from '../components/FlowKPI.jsx';
 import PowerFlowLast24h from '../components/PowerFlowLast24h.jsx';
-import ActivePowerChart from '../components/ActivePowerChart.jsx';
+
 
 const Overview = () => {
   return (
@@ -29,10 +29,7 @@ const Overview = () => {
         </div>
       </div>
 
-      {/* Second row: Full width ActivePowerChart */}
-      <div className="w-full">
-        <ActivePowerChart />
-      </div>
+
     </div>
   );
 };

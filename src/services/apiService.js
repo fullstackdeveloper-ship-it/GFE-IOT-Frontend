@@ -181,14 +181,7 @@ class ApiService {
     });
   }
 
-  // Power Meter Devices API
-  static async getPowerMeterDevices() {
-    return this.request('/devices/power-meters');
-  }
 
-  static async getDeviceActivePowerData(deviceName, hours = 24) {
-    return this.request(`/devices/${deviceName}/active-power?hours=${hours}`);
-  }
 }
 
 export default ApiService;
