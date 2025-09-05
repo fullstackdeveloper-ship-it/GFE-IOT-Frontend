@@ -24,12 +24,21 @@
     "dev": "REACT_APP_ENV=development react-scripts start",
     "build": "react-scripts build",
     "build:dev": "REACT_APP_ENV=development react-scripts build",
-    "build:prod": "REACT_APP_ENV=production react-scripts build",
+    "build:prod": "REACT_APP_ENV=production GENERATE_SOURCEMAP=false react-scripts build",
+    "build:analyze": "ANALYZE_BUNDLE=true npm run build:prod",
     "test": "react-scripts test",
+    "test:coverage": "react-scripts test --coverage --watchAll=false",
     "eject": "react-scripts eject",
     "lint": "eslint src --ext .js,.jsx",
     "lint:fix": "eslint src --ext .js,.jsx --fix",
-    "clean": "rm -rf build node_modules package-lock.json && npm install"
+    "clean": "rm -rf build node_modules package-lock.json && npm install",
+    "clean:build": "rm -rf build",
+    "deploy": "./deploy.sh",
+    "docker:build": "docker build -t gfe-iot-frontend:latest .",
+    "docker:run": "docker run -d --name gfe-iot-frontend -p 80:80 gfe-iot-frontend:latest",
+    "docker:stop": "docker stop gfe-iot-frontend && docker rm gfe-iot-frontend",
+    "size": "npm run build:prod && du -sh build/",
+    "precommit": "npm run lint && npm run test"
   },
   "eslintConfig": {
     "extends": [
@@ -52,6 +61,10 @@
   "devDependencies": {
     "autoprefixer": "^10.4.14",
     "postcss": "^8.4.24",
-    "tailwindcss": "^3.3.0"
+    "tailwindcss": "^3.3.0",
+    "customize-cra": "^1.0.0",
+    "react-app-rewired": "^2.2.1",
+    "compression-webpack-plugin": "^10.0.0",
+    "webpack-bundle-analyzer": "^4.10.1"
   }
 }
