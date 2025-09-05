@@ -887,11 +887,11 @@ const Network = () => {
         mode: dropdownOptions?.mode?.length ? dropdownOptions.mode : ['raw', 'canonical']
       };
       const payload = {
-        baud: Number.isFinite(modalValues.baud) && dd.baud.includes(modalValues.baud) ? modalValues.baud : (dd.baud[0] || 115200),
-        dataBits: Number.isFinite(modalValues.dataBits) && dd.dataBits.includes(modalValues.dataBits) ? modalValues.dataBits : (dd.dataBits.includes(8) ? 8 : (dd.dataBits[0] || 8)),
-        stopBits: Number.isFinite(modalValues.stopBits) && dd.stopBits.includes(modalValues.stopBits) ? modalValues.stopBits : (dd.stopBits.includes(1) ? 1 : (dd.stopBits[0] || 1)),
-        parity: typeof modalValues.parity === 'string' && dd.parity.includes(modalValues.parity) ? modalValues.parity : 'none',
-        mode: typeof modalValues.mode === 'string' && dd.mode.includes(modalValues.mode) ? modalValues.mode : (dd.mode[0] || 'raw'),
+        baud: modalValues.baud && dd.baud.includes(Number(modalValues.baud)) ? Number(modalValues.baud) : (dd.baud[0] || 115200),
+        dataBits: modalValues.dataBits && dd.dataBits.includes(Number(modalValues.dataBits)) ? Number(modalValues.dataBits) : (dd.dataBits.includes(8) ? 8 : (dd.dataBits[0] || 8)),
+        stopBits: modalValues.stopBits && dd.stopBits.includes(Number(modalValues.stopBits)) ? Number(modalValues.stopBits) : (dd.stopBits.includes(1) ? 1 : (dd.stopBits[0] || 1)),
+        parity: modalValues.parity && dd.parity.includes(modalValues.parity) ? modalValues.parity : 'none',
+        mode: modalValues.mode && dd.mode.includes(modalValues.mode) ? modalValues.mode : (dd.mode[0] || 'raw'),
       };
       
       // Map frontend Serial 1/Serial 2 back to backend COM1/COM2
@@ -1606,7 +1606,7 @@ const Network = () => {
         options={dropdownOptions}
         onClose={closeSerialEdit}
         onSave={saveSerialEdit}
-        onChange={setModalValues}
+        onChange={(field, value) => setModalValues(prev => ({ ...prev, [field]: value }))}
       />
 
       {/* Add/Edit Device Modals per interface */}
